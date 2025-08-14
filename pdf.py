@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v8.3 - Refinamentos de UI
+#   QuantumPDF v8.4 - Melhoria na Exibição de Miniaturas
 #   Autor: Gemini
 #   Data: 14/08/2025
 #
-#   Recursos Principais (v8.3):
-#   - Layout da Barra de Status: Agrupados os controles de navegação de página
-#     e zoom à direita para um layout mais coeso.
-#   - Rolagem Automática de Miniaturas: A lista de miniaturas agora rola
-#     automaticamente para a página selecionada.
-#   - Estilo de Miniaturas Refinado: Removidas as bordas das miniaturas; a
-#     seleção agora é indicada apenas pela cor de fundo.
+#   Recursos Principais (v8.4):
+#   - Posição do Número da Página: O número da página na barra de miniaturas
+#     agora é exibido abaixo da miniatura, em vez de sobreposto a ela,
+#     melhorando a visibilidade.
 #
 #   Recursos Anteriores Mantidos:
-#   - Janela de Impressão Completa e todas as funcionalidades das versões
-#     anteriores.
+#   - Todos os recursos das versões anteriores, incluindo a janela de impressão
+#     avançada, rolagem automática de miniaturas e layout da barra de status.
 #
 # #############################################################################
 
@@ -287,11 +284,11 @@ class ThumbnailListWidget(QListWidget):
         self.setWrapping(False)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
-        self.setSpacing(5)
+        self.setSpacing(10) # Aumentado o espaçamento para o texto
         self.itemClicked.connect(self._on_item_clicked)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setUniformItemSizes(False)
-        self.setIconSize(QSize(140, 200)) # Ajustado para a nova largura da barra
+        self.setIconSize(QSize(140, 220)) # Ajustado para a nova altura
     
     def _on_item_clicked(self, item: QListWidgetItem):
         page_num = self.row(item)
@@ -594,7 +591,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v8.3")
+        self.setWindowTitle("QuantumPDF v8.4")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -847,6 +844,7 @@ class MainWindow(QMainWindow):
                 border: 2px solid transparent; 
                 border-radius: 4px; 
                 margin: 2px;
+                padding: 0px;
             }}
             #ThumbnailListWidget::item:selected {{ 
                 background-color: #dfefff;
@@ -920,7 +918,7 @@ class MainWindow(QMainWindow):
     def _create_thumbnail_sidebar(self):
         sidebar = QWidget()
         sidebar.setObjectName("thumbnailSidebar")
-        sidebar.setFixedWidth(195) # Largura reduzida
+        sidebar.setFixedWidth(195) 
         
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(10, 10, 5, 10)
@@ -1025,27 +1023,30 @@ class MainWindow(QMainWindow):
         if page_num < len(viewer.thumbnail_pixmaps):
             
             TARGET_WIDTH = 130 
+            TEXT_AREA_HEIGHT = 20 # Espaço para o número da página
+            
             scaled_pixmap = pixmap.scaledToWidth(TARGET_WIDTH, Qt.TransformationMode.SmoothTransformation)
             
-            final_pixmap = QPixmap(scaled_pixmap.size())
-            final_pixmap.fill(QColor("#ffffff")) # Fundo branco para a miniatura
+            # Cria um pixmap final que é mais alto para acomodar o texto abaixo
+            final_size = QSize(scaled_pixmap.width(), scaled_pixmap.height() + TEXT_AREA_HEIGHT)
+            final_pixmap = QPixmap(final_size)
+            final_pixmap.fill(Qt.GlobalColor.transparent) # Fundo transparente para o item da lista
             
             painter = QPainter(final_pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             
-            # Desenha a miniatura centralizada
-            target_rect = scaled_pixmap.rect()
-            target_rect.moveCenter(final_pixmap.rect().center())
-            painter.drawPixmap(target_rect.topLeft(), scaled_pixmap)
+            # Desenha a miniatura na parte superior
+            painter.drawPixmap(0, 0, scaled_pixmap)
             
-            # Adiciona o número da página
+            # Adiciona o número da página na área inferior
             font = self.font()
             font.setPointSize(9)
             font.setBold(True)
             painter.setFont(font)
-            painter.setPen(QColor("#555555"))
+            painter.setPen(QColor("#333333")) # Cor do texto
             
-            text_rect = QRectF(0, final_pixmap.height() - 20, final_pixmap.width(), 20)
+            # Retângulo para o texto na parte de baixo
+            text_rect = QRectF(0, scaled_pixmap.height(), final_pixmap.width(), TEXT_AREA_HEIGHT)
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, f"{page_num + 1}")
             painter.end()
 
@@ -1056,7 +1057,9 @@ class MainWindow(QMainWindow):
                 item = self.thumbnail_list.item(page_num)
                 if item:
                     item.setIcon(QIcon(final_pixmap))
+                    # Define o tamanho do item para incluir a imagem e o texto
                     item.setSizeHint(final_pixmap.size())
+
 
     def show_notification(self, message):
         logger.info(f"Exibindo notificação: '{message}'")
@@ -1149,7 +1152,10 @@ class MainWindow(QMainWindow):
                     item.setIcon(QIcon(pixmap))
                     item.setSizeHint(pixmap.size())
                 else:
-                    placeholder_size = QSize(140, 110) if viewer.thumbnail_orientations[i] else QSize(140, 200)
+                    # Usa um placeholder baseado na orientação, se conhecido, senão padrão
+                    is_landscape = viewer.thumbnail_orientations[i] if i < len(viewer.thumbnail_orientations) else False
+                    placeholder_height = 110 if is_landscape else 200
+                    placeholder_size = QSize(140, placeholder_height + 20) # +20 para o texto
                     item.setSizeHint(placeholder_size)
                 self.thumbnail_list.addItem(item)
             
@@ -1495,10 +1501,10 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar a aplicação."""
-    logger.info("Iniciando QuantumPDF v8.3...")
+    logger.info("Iniciando QuantumPDF v8.4...")
     app = QApplication(sys.argv)
     
-    server_name = "QuantumPDF_SingleInstance_Server_v8.3"
+    server_name = "QuantumPDF_SingleInstance_Server_v8.4"
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
@@ -1564,3 +1570,4 @@ if __name__ == "__main__":
     except Exception:
         logger.critical("Uma exceção fatal ocorreu na função main:", exc_info=True)
         sys.exit(1)
+
