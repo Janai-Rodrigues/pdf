@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v8.4 - Melhoria na Exibição de Miniaturas
+#   QuantumPDF v8.9 - Centralização Perfeita do Preview de Impressão
 #   Autor: Gemini
 #   Data: 14/08/2025
 #
-#   Recursos Principais (v8.4):
-#   - Posição do Número da Página: O número da página na barra de miniaturas
-#     agora é exibido abaixo da miniatura, em vez de sobreposto a ela,
-#     melhorando a visibilidade.
-#
-#   Recursos Anteriores Mantidos:
-#   - Todos os recursos das versões anteriores, incluindo a janela de impressão
-#     avançada, rolagem automática de miniaturas e layout da barra de status.
+#   Recursos Principais (v8.9):
+#   - Preview de Impressão Sempre Centralizado: A miniatura na janela de
+#     impressão agora permanece perfeitamente centralizada em todas as
+#     situações, seja ao abrir a janela ou ao alternar entre as orientações.
 #
 # #############################################################################
 
@@ -34,7 +30,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import (
     QIcon, QPixmap, QImage, QPainter, QPen, QColor,
     QCursor, QBrush, QAction, QIntValidator, QPageLayout, QTransform, QActionGroup,
-    QFont
+    QFont, QShortcut, QKeySequence
 )
 from PyQt6.QtCore import (
     Qt, QSize, QRectF, QPoint, QTimer, QThread, pyqtSignal, QByteArray,
@@ -90,10 +86,10 @@ class IconManager:
         "fit-width": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>""",
         "fit-page": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 3 3 3 3 9"></polyline><polyline points="15 21 21 21 21 15"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="21" y1="21" x2="14" y2="14"></line></svg>""",
         "search": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>""",
-        "left-arrow": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>""",
-        "right-arrow": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>""",
-        "rotate-right": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>""",
-        "rotate-left": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>""",
+        "arrow-up": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>""",
+        "arrow-down": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>""",
+        "rotate-right": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>""",
+        "rotate-left": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>""",
         "select": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 2.5-7.5L19 12l-16-9z"></path></svg>""",
         "hand": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-1.8-4-4l1.4-1.4"></path></svg>""",
         "close": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>""",
@@ -113,7 +109,7 @@ class IconManager:
         if cache_key in self._icon_cache:
             return self._icon_cache[cache_key]
         svg_string = self._svg_data.get(name)
-        if not svg_string: 
+        if not svg_string:
             logger.warning(f"Ícone '{name}' não encontrado no IconManager.")
             return QIcon()
         colored_svg = svg_string.replace('stroke="currentColor"', f'stroke="{color}"')
@@ -145,7 +141,7 @@ class WelcomeScreen(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(20)
-        
+
         icon_manager = IconManager()
         icon_label = QLabel()
         icon_pixmap = icon_manager.get_icon("welcome_file", "#B0BEC5").pixmap(QSize(96, 96))
@@ -178,6 +174,7 @@ class PDFGraphicsView(QGraphicsView):
     """View que exibe a cena do PDF."""
     zoom_requested_by_wheel = pyqtSignal(float)
     text_selected = pyqtSignal(QRectF)
+    page_scroll_requested = pyqtSignal(int)  # +1 para próxima página, -1 para anterior
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -187,11 +184,11 @@ class PDFGraphicsView(QGraphicsView):
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
-        
+
         self._pixmap_item: Optional[QGraphicsPixmapItem] = None
         self._selection_rect_item: Optional[QGraphicsRectItem] = None
         self._selection_start_pos: Optional[QPointF] = None
-        
+
         self.set_interaction_mode('select')
 
     def set_page_pixmap(self, pixmap: QPixmap):
@@ -210,22 +207,37 @@ class PDFGraphicsView(QGraphicsView):
         else:
             self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             self.setCursor(Qt.CursorShape.OpenHandCursor)
-    
+
     def wheelEvent(self, event):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             angle = event.angleDelta().y()
             factor = 1.15 if angle > 0 else 1 / 1.15
             self.zoom_requested_by_wheel.emit(factor)
             event.accept()
+            return
+
+        v_bar = self.verticalScrollBar()
+        is_at_top = v_bar.value() == v_bar.minimum()
+        is_at_bottom = v_bar.value() == v_bar.maximum()
+
+        scroll_delta = event.angleDelta().y()
+
+        if scroll_delta > 0 and is_at_top:
+            self.page_scroll_requested.emit(-1)
+            event.accept()
+        elif scroll_delta < 0 and is_at_bottom:
+            self.page_scroll_requested.emit(1)
+            event.accept()
         else:
             super().wheelEvent(event)
+
 
     def mousePressEvent(self, event):
         if self.dragMode() == QGraphicsView.DragMode.NoDrag and event.button() == Qt.MouseButton.LeftButton:
             self._selection_start_pos = self.mapToScene(event.pos())
-            if self._selection_rect_item: 
+            if self._selection_rect_item:
                 self._scene.removeItem(self._selection_rect_item)
-            pen = QPen(QColor(0, 120, 215, 200), 1, Qt.PenStyle.DashLine)
+            pen = QPen(QColor(0, 120, 215, 150), 1, Qt.PenStyle.SolidLine)
             brush = QBrush(QColor(0, 120, 215, 40))
             self._selection_rect_item = self._scene.addRect(QRectF(), pen, brush)
             self._selection_rect_item.setZValue(10)
@@ -284,12 +296,12 @@ class ThumbnailListWidget(QListWidget):
         self.setWrapping(False)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
-        self.setSpacing(10) # Aumentado o espaçamento para o texto
+        self.setSpacing(10)
         self.itemClicked.connect(self._on_item_clicked)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setUniformItemSizes(False)
-        self.setIconSize(QSize(140, 220)) # Ajustado para a nova altura
-    
+        self.setIconSize(QSize(140, 220))
+
     def _on_item_clicked(self, item: QListWidgetItem):
         page_num = self.row(item)
         self.page_selected.emit(page_num)
@@ -344,11 +356,12 @@ class PDFViewer(QWidget):
         self.thumbnail_loader: Optional[ThumbnailLoaderThread] = None
         self.search_results = []
         self.current_search_index = -1
-        
+        self.scroll_to_bottom_on_load = False
+
         try:
             logger.info(f"Tentando abrir o arquivo: {file_path}")
             self.doc = fitz.open(file_path)
-            self.thumbnail_pixmaps: List[Optional[QPixmap]] = [None] * self.page_count()
+            self.raw_thumbnail_pixmaps: List[Optional[QPixmap]] = [None] * self.page_count()
             self.thumbnail_orientations: List[bool] = [False] * self.page_count()
             logger.info(f"Arquivo '{os.path.basename(file_path)}' aberto com sucesso. Páginas: {len(self.doc)}")
         except Exception:
@@ -357,27 +370,28 @@ class PDFViewer(QWidget):
             return
 
         self._init_ui()
-        
+
     def _init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0,0,0,0)
-        
+
         self.view = PDFGraphicsView()
         self.view.zoom_requested_by_wheel.connect(self._handle_wheel_zoom)
         self.view.text_selected.connect(self._on_text_selected)
-        
+        self.view.page_scroll_requested.connect(self._handle_page_scroll)
+
         main_layout.addWidget(self.view)
-        
+
         self._render_timer = QTimer(self)
         self._render_timer.setSingleShot(True)
         self._render_timer.setInterval(150)
         self._render_timer.timeout.connect(self._render_page)
-        
+
         self.set_interaction_mode('select')
 
     def display_page(self, page_num: int):
         if not self.doc or not (0 <= page_num < self.page_count()): return
-        
+
         if self.current_page_index != page_num:
             logger.debug(f"Exibindo página {page_num} do arquivo '{os.path.basename(self.file_path)}'")
             self.current_page_index = page_num
@@ -395,16 +409,16 @@ class PDFViewer(QWidget):
 
     def _render_page(self):
         if not self.doc or not self.view.viewport(): return
-        
+
         if self.page_render_thread and self.page_render_thread.isRunning():
             self.page_render_thread.requestInterruption()
             self.page_render_thread.wait()
 
         page = self.doc.load_page(self.current_page_index)
-        
+
         final_scale = self.base_scale * self.current_zoom_factor
         logger.debug(f"Iniciando renderização da página {self.current_page_index} com escala final {final_scale:.2f}")
-        
+
         self.page_render_thread = PageRenderThread(page, self.rotation, final_scale)
         self.page_render_thread.page_ready.connect(self._on_page_ready)
         self.page_render_thread.start()
@@ -413,6 +427,13 @@ class PDFViewer(QWidget):
         logger.debug(f"Renderização da página {self.current_page_index} concluída com escala {scale:.2f}.")
         self.current_render_scale = scale
         self.view.set_page_pixmap(pixmap)
+
+        if self.scroll_to_bottom_on_load:
+            QTimer.singleShot(0, lambda: self.view.verticalScrollBar().setValue(self.view.verticalScrollBar().maximum()))
+            self.scroll_to_bottom_on_load = False
+        else:
+            QTimer.singleShot(0, lambda: self.view.verticalScrollBar().setValue(0))
+
         self._update_highlights()
 
     def set_zoom_factor(self, factor: float):
@@ -431,12 +452,12 @@ class PDFViewer(QWidget):
 
     def _on_text_selected(self, scene_rect: QRectF):
         if not self.doc: return
-        
+
         try:
             pdf_rect = fitz.Rect(
-                scene_rect.x() / self.current_render_scale, 
+                scene_rect.x() / self.current_render_scale,
                 scene_rect.y() / self.current_render_scale,
-                scene_rect.right() / self.current_render_scale, 
+                scene_rect.right() / self.current_render_scale,
                 scene_rect.bottom() / self.current_render_scale
             )
         except ZeroDivisionError:
@@ -451,9 +472,18 @@ class PDFViewer(QWidget):
         if selected_text:
             logger.info(f"Texto selecionado e copiado: '{selected_text[:30].strip()}...'")
             QApplication.clipboard().setText(selected_text.strip())
-            self.copied_to_clipboard.emit("Texto copiado!")
+            self.copied_to_clipboard.emit("✓ Texto copiado para a área de transferência")
         else:
             logger.debug("Seleção de área sem texto extraível.")
+
+    def _handle_page_scroll(self, direction: int):
+        """Muda de página quando o usuário rola o mouse até o limite."""
+        if direction > 0 and self.current_page_index < self.page_count() - 1:
+            self.display_page(self.current_page_index + 1)
+        elif direction < 0 and self.current_page_index > 0:
+            self.scroll_to_bottom_on_load = True
+            self.display_page(self.current_page_index - 1)
+
 
     def page_count(self) -> int:
         return len(self.doc) if self.doc else 0
@@ -474,12 +504,12 @@ class PDFViewer(QWidget):
 
         page_rect = page.rect.transform(fitz.Matrix(1,1).prerotate(self.rotation))
         view_size = self.view.viewport().size()
-        
+
         if page_rect.width == 0 or page_rect.height == 0: return
 
         scale_x = view_size.width() / page_rect.width
         scale_y = view_size.height() / page_rect.height
-        
+
         self.base_scale = min(scale_x, scale_y)
         self._request_render()
 
@@ -488,7 +518,7 @@ class PDFViewer(QWidget):
         self.current_zoom_factor = 1.0
         self.zoom_changed.emit(self.current_zoom_factor)
         self._recalculate_base_scale_and_render()
-    
+
     def fit_to_width(self):
         if not self.doc or not self.view.viewport(): return
         page = self.doc.load_page(self.current_page_index)
@@ -498,17 +528,17 @@ class PDFViewer(QWidget):
         view_width = self.view.viewport().width()
 
         if page_rect.width == 0: return
-        
+
         scale_for_width = view_width / page_rect.width
         new_zoom_factor = scale_for_width / self.base_scale
-        
+
         logger.debug(f"Ajustando para largura. Novo fator de zoom: {new_zoom_factor:.2f}")
         self.set_zoom_factor(new_zoom_factor)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._recalculate_base_scale_and_render()
-        
+
     def set_interaction_mode(self, mode: str):
         logger.debug(f"Alterando modo de interação para: {mode}")
         self.view.set_interaction_mode(mode)
@@ -527,26 +557,26 @@ class PDFViewer(QWidget):
             rects = page.search_for(text)
             for rect in rects:
                 self.search_results.append((i, rect))
-        
+
         logger.info(f"Busca concluída. {len(self.search_results)} resultados encontrados.")
         if self.search_results:
             self.current_search_index = 0
             self.go_to_result(0)
-        
+
         self.search_results_updated.emit(self.current_search_index + 1 if self.search_results else 0, len(self.search_results))
 
     def go_to_result(self, index: int):
         if not (0 <= index < len(self.search_results)): return
-        
+
         self.current_search_index = index
         page_num, rect = self.search_results[index]
         logger.debug(f"Navegando para resultado {index+1}/{len(self.search_results)} na página {page_num}.")
-        
+
         if page_num != self.current_page_index:
             self.display_page(page_num)
         else:
             self._update_highlights()
-        
+
         self.search_results_updated.emit(self.current_search_index + 1, len(self.search_results))
 
     def _update_highlights(self):
@@ -562,7 +592,7 @@ class PDFViewer(QWidget):
         for i, (p_num, rect) in enumerate(self.search_results):
             if p_num == self.current_page_index:
                 highlight_rect = rect * self.current_render_scale
-                
+
                 item = QGraphicsRectItem(QRectF(highlight_rect.x0, highlight_rect.y0, highlight_rect.width, highlight_rect.height))
                 if i == self.current_search_index:
                     item.setBrush(QColor(255, 255, 0, 100))
@@ -591,14 +621,15 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v8.4")
+        self.setWindowTitle("QuantumPDF v8.8")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
-        self.setAcceptDrops(True) # Habilita arrastar e soltar
-        
+        self.setAcceptDrops(True)
+        self.current_selection_index = -1
+
         self.icon_manager = IconManager()
-        
+
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QVBoxLayout(main_widget)
@@ -626,39 +657,43 @@ class MainWindow(QMainWindow):
         self.tab_widget.tabBar().setElideMode(Qt.TextElideMode.ElideRight)
         self.tab_widget.tabCloseRequested.connect(self._close_tab)
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
-        
+
         self.welcome_screen = WelcomeScreen()
         self.welcome_screen.clicked.connect(self._open_file)
-        
+
         self.view_stack = QStackedWidget()
         self.view_stack.addWidget(self.welcome_screen)
         self.view_stack.addWidget(self.tab_widget)
-        
+
         content_layout.addWidget(self.view_stack)
-        
+
         self.tool_sidebar = self._create_tool_sidebar()
         content_layout.addWidget(self.tool_sidebar)
-        
+
         self._setup_status_bar()
-        
+
         self._update_ui_for_current_tab()
         self.old_pos = None
+
+        self.search_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
+        self.search_shortcut.activated.connect(self._focus_search_input)
+
         logger.info("Janela principal criada com sucesso.")
 
     def _create_custom_title_bar(self):
         title_bar = QWidget()
         title_bar.setObjectName("customTitleBar")
         title_bar_layout = QHBoxLayout(title_bar)
-        title_bar_layout.setContentsMargins(10, 0, 5, 0)
+        title_bar_layout.setContentsMargins(10, 5, 5, 5)
         title_bar_layout.setSpacing(10)
-        
+
         title_label = QLabel("QuantumPDF")
         title_label.setObjectName("titleLabel")
         title_bar_layout.addWidget(title_label)
         title_bar_layout.addStretch()
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Buscar no documento...")
+        self.search_input.setPlaceholderText("Buscar no documento (Ctrl+f)...")
         self.search_input.setFixedWidth(250)
         self.search_input.textChanged.connect(self._on_search_text_changed)
         self.search_timer = QTimer(self)
@@ -669,12 +704,12 @@ class MainWindow(QMainWindow):
         self.search_results_label = QLabel("")
         title_bar_layout.addWidget(self.search_results_label)
 
-        self.search_prev_button = QPushButton(self.icon_manager.get_icon("left-arrow", "#555"), "")
+        self.search_prev_button = QPushButton(self.icon_manager.get_icon("arrow-up", "#555"), "")
         self.search_prev_button.clicked.connect(self._go_to_prev_result)
         self.search_prev_button.setFixedSize(24,24)
         title_bar_layout.addWidget(self.search_prev_button)
 
-        self.search_next_button = QPushButton(self.icon_manager.get_icon("right-arrow", "#555"), "")
+        self.search_next_button = QPushButton(self.icon_manager.get_icon("arrow-down", "#555"), "")
         self.search_next_button.clicked.connect(self._go_to_next_result)
         self.search_next_button.setFixedSize(24,24)
         title_bar_layout.addWidget(self.search_next_button)
@@ -689,12 +724,12 @@ class MainWindow(QMainWindow):
         minimize_button.setFixedSize(btn_size)
         minimize_button.setObjectName("titleBarButton")
         minimize_button.clicked.connect(self.showMinimized)
-        
+
         self.maximize_button = QPushButton(self.icon_manager.get_icon("maximize", "#333"), "")
         self.maximize_button.setFixedSize(btn_size)
         self.maximize_button.setObjectName("titleBarButton")
         self.maximize_button.clicked.connect(self._toggle_maximize)
-        
+
         close_button = QPushButton(self.icon_manager.get_icon("close", "#333"), "")
         close_button.setFixedSize(btn_size)
         close_button.setObjectName("closeButton")
@@ -708,41 +743,37 @@ class MainWindow(QMainWindow):
     def _setup_status_bar(self):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        
-        # Container para todos os widgets do lado direito da barra de status
+
         status_right_container = QWidget()
         status_right_layout = QHBoxLayout(status_right_container)
         status_right_layout.setContentsMargins(0, 0, 5, 0)
-        status_right_layout.setSpacing(10)
+        status_right_layout.setSpacing(2)
 
-        # Widget de navegação de página (setas e números)
+        self.status_prev_page_btn = QPushButton(self.icon_manager.get_icon("arrow-up", "#333"), "")
+        self.status_prev_page_btn.setFixedSize(22,22)
+        self.status_prev_page_btn.clicked.connect(self._go_to_prev_page)
+
         self.page_input = QLineEdit("0")
         self.page_input.setValidator(QIntValidator(1, 9999))
         self.page_input.returnPressed.connect(self._go_to_page_from_input)
         self.page_input.setFixedWidth(45)
         self.page_input.setAlignment(Qt.AlignmentFlag.AlignRight)
-        
+
         self.page_count_label = QLabel("/ 0")
-        
-        self.status_prev_page_btn = QPushButton(self.icon_manager.get_icon("left-arrow", "#333"), "")
-        self.status_prev_page_btn.setFixedSize(22,22)
-        self.status_prev_page_btn.clicked.connect(self._go_to_prev_page)
-        
-        self.status_next_page_btn = QPushButton(self.icon_manager.get_icon("right-arrow", "#333"), "")
+        self.page_count_label.setFixedWidth(40)
+
+        self.status_next_page_btn = QPushButton(self.icon_manager.get_icon("arrow-down", "#333"), "")
         self.status_next_page_btn.setFixedSize(22,22)
         self.status_next_page_btn.clicked.connect(self._go_to_next_page)
-        
-        # Widget de zoom
+
         self.status_zoom_label = QLabel("100%")
         self.status_zoom_label.setFixedWidth(50)
         self.status_zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Separador vertical
+
         line_sep = QFrame()
         line_sep.setFrameShape(QFrame.Shape.VLine)
         line_sep.setFrameShadow(QFrame.Shadow.Sunken)
 
-        # Adiciona os widgets ao layout do container na ordem desejada
         status_right_layout.addWidget(self.status_prev_page_btn)
         status_right_layout.addWidget(self.page_input)
         status_right_layout.addWidget(self.page_count_label)
@@ -750,7 +781,6 @@ class MainWindow(QMainWindow):
         status_right_layout.addWidget(line_sep)
         status_right_layout.addWidget(self.status_zoom_label)
 
-        # Adiciona o container como um único widget permanente à barra de status
         self.status_bar.addPermanentWidget(status_right_container)
 
 
@@ -804,52 +834,86 @@ class MainWindow(QMainWindow):
         self.icon_color = "#333333"
         self.setStyleSheet(f"""
             QMainWindow {{ background-color: #ffffff; }}
-            #customTitleBar {{ background-color: #f0f2f5; border-bottom: 1px solid #dcdcdc; }}
+            #customTitleBar {{
+                background-color: #f0f2f5;
+                border-bottom: 1px solid #dcdcdc;
+                padding: 5px 0;
+            }}
             #titleLabel {{ color: #333; font-weight: bold; }}
-            #customTitleBar QPushButton {{ border: none; border-radius: 4px; }}
+            QPushButton {{ border: none; border-radius: 4px; outline: none; }}
             #customTitleBar QPushButton:hover {{ background-color: #e0e0e0; }}
             #closeButton:hover {{ background-color: #ff6e6e; }}
-            
-            #thumbnailSidebar {{ 
-                background-color: #f0f2f5; 
-                border-right: 1px solid #dcdcdc; 
+
+            #customTitleBar QLineEdit {{
+                border: 1px solid #dcdcdc;
+                border-radius: 4px;
+                padding: 5px 8px;
+                margin: 0;
+            }}
+            #customTitleBar QLineEdit:focus {{
+                border: 1px solid #4d90fe;
+                background-color: #ffffff;
+            }}
+
+            #thumbnailSidebar {{
+                background-color: #f0f2f5;
+                border-right: 1px solid #dcdcdc;
             }}
             #thumbnailSidebar QLabel {{ color: #333333; font-weight: bold; }}
             #toolSidebar {{ background-color: #f0f2f5; border-left: 1px solid #dcdcdc; }}
 
-            #toolSidebar QPushButton {{ 
-                border: 1px solid transparent; padding: 4px; margin: 1px 0; border-radius: 4px; 
+            #toolSidebar QPushButton {{
+                border: 1px solid transparent; padding: 4px; margin: 1px 0; border-radius: 4px;
             }}
             #toolSidebar QPushButton:hover {{ background-color: #e0e0e0; border-color: #ccc; }}
-            #toolSidebar QPushButton:checked {{ background-color: #c5d8f0; border-color: #0078d7;}}
+            #toolSidebar QPushButton:checked {{
+                background-color: #e0e0e0;
+                border-color: #cccccc;
+            }}
             #toolSidebar QPushButton:disabled {{ background-color: #f0f0f0; border-color: #e0e0e0; }}
 
             QTabWidget::pane {{ border: none; }}
-            QTabBar::tab {{ 
-                background: #f0f2f5; border: 1px solid #dcdcdc; border-bottom: none; 
+            QTabBar::tab {{
+                background: #f0f2f5; border: 1px solid #dcdcdc; border-bottom: none;
                 padding: 8px 12px; margin-right: -1px; min-width: 50px; max-width: 200px;
             }}
             QTabBar::tab:selected {{ background: #ffffff; border-bottom-color: #ffffff; }}
             QTabBar::tab:!selected:hover {{ background: #e8eaf0; }}
             QTabBar::tab:focus {{ outline: none; }}
             QLineEdit {{ border: 1px solid #cccccc; border-radius: 4px; padding: 4px 8px; }}
-            
-            QStatusBar {{ background-color: #f0f2f5; border-top: 1px solid #dcdcdc; }}
+
+            QStatusBar {{
+                background-color: #f0f2f5;
+                border-top: 1px solid #dcdcdc;
+                padding: 2px;
+            }}
             QStatusBar QLineEdit {{ padding: 1px 4px; }}
-            QStatusBar QPushButton {{ border: none; background-color: transparent; }}
-            QStatusBar QPushButton:hover {{ background-color: #dcdcdc; border-radius: 2px; }}
+            QStatusBar QPushButton {{
+                border: none;
+                background-color: transparent;
+                padding: 2px;
+            }}
+            QStatusBar QPushButton:hover {{
+                background-color: #dcdcdc;
+                border-radius: 2px;
+            }}
+            QStatusBar QLabel {{
+                margin: 0 2px;
+            }}
 
             #ThumbnailListWidget {{ background-color: #f0f2f5; border: none; padding: 5px; }}
-            #ThumbnailListWidget::item {{ 
-                border: 2px solid transparent; 
-                border-radius: 4px; 
+            #ThumbnailListWidget::item {{
+                border: 2px solid transparent;
+                border-radius: 4px;
                 margin: 2px;
                 padding: 0px;
+                background-color: transparent;
             }}
-            #ThumbnailListWidget::item:selected {{ 
-                background-color: #dfefff;
+            #ThumbnailListWidget::item:selected {{
+                border: 2px solid transparent;
+                background-color: transparent;
             }}
-            
+
             QScrollBar:vertical {{
                 border: none;
                 background: #f0f2f5;
@@ -864,28 +928,65 @@ class MainWindow(QMainWindow):
             QScrollBar::handle:vertical:hover {{
                 background: #a8a8a8;
             }}
-            
+
             #PDFGraphicsView {{ background-color: #e9e9e9; border: none; }}
             QWidget#PDFViewerWidget {{ border: none; }}
-            
+
             #welcomeScreen {{ background-color: #ffffff; }}
             #welcomeTitle {{ font-size: 28px; font-weight: 300; color: #495057; }}
             #welcomeSubtitle {{ font-size: 18px; color: #6c757d; }}
             #welcomeInstruction {{ font-size: 14px; color: #adb5bd; }}
-            
+
             AdvancedPrintDialog, AdvancedPrintDialog QGroupBox {{ background-color: #f9f9f9; }}
+
+            /* Estilos para botões de Imprimir e Cancelar */
+            #printButton, #cancelButton {{
+                padding: 8px 16px;
+                min-width: 90px;
+                font-size: 13px;
+                border-radius: 4px;
+            }}
+            #printButton {{
+                background-color: #0078d7;
+                color: white;
+                border: 1px solid #005a9e;
+            }}
+            #printButton:hover {{
+                background-color: #005a9e;
+            }}
+            #cancelButton {{
+                background-color: #f0f0f0;
+                border: 1px solid #cccccc;
+                color: #333;
+            }}
+            #cancelButton:hover {{
+                background-color: #e0e0e0;
+            }}
+
+            /* Estilos para botões de navegação do preview */
+            #previewNavContainer QPushButton {{
+                background-color: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 5px;
+                min-width: 35px;
+                max-width: 35px;
+            }}
+            #previewNavContainer QPushButton:hover {{
+                background-color: #e0e0e0;
+            }}
         """)
 
     def _create_actions(self):
         self.action_open = QAction(self.icon_manager.get_icon("open", self.icon_color), "Abrir...", self)
         self.action_open.triggered.connect(self._open_file)
-        
+
         self.action_print = QAction(self.icon_manager.get_icon("print", self.icon_color), "Imprimir...", self)
         self.action_print.triggered.connect(self._print_pdf)
-        
-        self.action_prev_page = QAction(self.icon_manager.get_icon("left-arrow", self.icon_color), "Página Anterior", self)
+
+        self.action_prev_page = QAction(self.icon_manager.get_icon("arrow-up", self.icon_color), "Página Anterior", self)
         self.action_prev_page.triggered.connect(self._go_to_prev_page)
-        self.action_next_page = QAction(self.icon_manager.get_icon("right-arrow", self.icon_color), "Próxima Página", self)
+        self.action_next_page = QAction(self.icon_manager.get_icon("arrow-down", self.icon_color), "Próxima Página", self)
         self.action_next_page.triggered.connect(self._go_to_next_page)
 
         self.action_zoom_in = QAction(self.icon_manager.get_icon("zoom-in", self.icon_color), "Aumentar Zoom", self)
@@ -896,12 +997,12 @@ class MainWindow(QMainWindow):
         self.action_fit_width.triggered.connect(self._fit_to_width)
         self.action_fit_page = QAction(self.icon_manager.get_icon("fit-page", self.icon_color), "Ajustar à Página", self)
         self.action_fit_page.triggered.connect(self._fit_to_page)
-        
-        self.action_rotate_left = QAction(self.icon_manager.get_icon("rotate-left", self.icon_color), "Girar à Esquerda", self)
-        self.action_rotate_left.triggered.connect(lambda: self._rotate_page(-90))
-        self.action_rotate_right = QAction(self.icon_manager.get_icon("rotate-right", self.icon_color), "Girar à Direita", self)
+
+        self.action_rotate_right = QAction(self.icon_manager.get_icon("rotate-right", self.icon_color), "Girar à Direita (Horário)", self)
         self.action_rotate_right.triggered.connect(lambda: self._rotate_page(90))
-        
+        self.action_rotate_left = QAction(self.icon_manager.get_icon("rotate-left", self.icon_color), "Girar à Esquerda (Anti-horário)", self)
+        self.action_rotate_left.triggered.connect(lambda: self._rotate_page(-90))
+
         self.action_select_mode = QAction(self.icon_manager.get_icon("select", self.icon_color), "Selecionar Texto", self)
         self.action_select_mode.setCheckable(True)
         self.action_select_mode.setChecked(True)
@@ -914,21 +1015,21 @@ class MainWindow(QMainWindow):
         self.tool_mode_group = QActionGroup(self)
         self.tool_mode_group.addAction(self.action_select_mode)
         self.tool_mode_group.addAction(self.action_pan_mode)
-    
+
     def _create_thumbnail_sidebar(self):
         sidebar = QWidget()
         sidebar.setObjectName("thumbnailSidebar")
-        sidebar.setFixedWidth(195) 
-        
+        sidebar.setFixedWidth(195)
+
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(10, 10, 5, 10)
         layout.setSpacing(10)
-        
+
         layout.addWidget(QLabel("Miniaturas"))
         self.thumbnail_list = ThumbnailListWidget()
         self.thumbnail_list.page_selected.connect(self._go_to_page_from_thumbnail)
         layout.addWidget(self.thumbnail_list)
-        
+
         return sidebar
 
     def _create_tool_sidebar(self):
@@ -939,7 +1040,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(5)
-        
+
         layout.addWidget(self._create_tool_button(self.action_open))
         layout.addWidget(self._create_tool_button(self.action_print))
         layout.addWidget(self._create_separator())
@@ -956,7 +1057,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._create_separator())
         layout.addWidget(self._create_tool_button(self.action_select_mode))
         layout.addWidget(self._create_tool_button(self.action_pan_mode))
-        
+
         layout.addStretch()
         return sidebar
 
@@ -970,18 +1071,23 @@ class MainWindow(QMainWindow):
         button = QPushButton(action.icon(), "")
         button.setToolTip(action.toolTip())
         button.setCheckable(action.isCheckable())
-        
+
         if action.isCheckable():
             button.setChecked(action.isChecked())
             action.toggled.connect(button.setChecked)
             if hasattr(self, 'tool_mode_group') and self.tool_mode_group and action in self.tool_mode_group.actions():
                  button.setAutoExclusive(True)
-        
+
         button.clicked.connect(action.trigger)
         action.changed.connect(lambda: button.setEnabled(action.isEnabled()))
         button.setIconSize(QSize(24, 24))
         button.setFixedSize(32, 32)
         return button
+
+    def _focus_search_input(self):
+        if self.search_input.isEnabled():
+            self.search_input.setFocus()
+            self.search_input.selectAll()
 
     def _open_file(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "Abrir Arquivo PDF", "", "Arquivos PDF (*.pdf)")
@@ -1002,68 +1108,82 @@ class MainWindow(QMainWindow):
         if not viewer.doc:
             viewer.deleteLater()
             return
-        
-        viewer.setObjectName("PDFViewerWidget") # Para garantir que não haja borda
+
+        viewer.setObjectName("PDFViewerWidget")
         viewer.page_changed.connect(self._update_page_selection)
         viewer.zoom_changed.connect(lambda z: self.status_zoom_label.setText(f"{int(z*100)}%"))
         viewer.copied_to_clipboard.connect(self.show_notification)
         viewer.search_results_updated.connect(self._update_search_results_label)
         viewer.rotation_changed.connect(self._refresh_thumbnails)
-        
+
         index = self.tab_widget.addTab(viewer, os.path.basename(file_path))
         self.tab_widget.setCurrentIndex(index)
         self.tab_widget.setTabToolTip(index, file_path)
-        
-        # Inicia o carregamento inicial das miniaturas
+
         self._refresh_thumbnails()
-        
+
         QTimer.singleShot(50, viewer.fit_to_page)
 
     def _on_thumbnail_ready(self, viewer: PDFViewer, page_num: int, pixmap: QPixmap, is_landscape: bool):
-        if page_num < len(viewer.thumbnail_pixmaps):
-            
-            TARGET_WIDTH = 130 
-            TEXT_AREA_HEIGHT = 20 # Espaço para o número da página
-            
-            scaled_pixmap = pixmap.scaledToWidth(TARGET_WIDTH, Qt.TransformationMode.SmoothTransformation)
-            
-            # Cria um pixmap final que é mais alto para acomodar o texto abaixo
-            final_size = QSize(scaled_pixmap.width(), scaled_pixmap.height() + TEXT_AREA_HEIGHT)
-            final_pixmap = QPixmap(final_size)
-            final_pixmap.fill(Qt.GlobalColor.transparent) # Fundo transparente para o item da lista
-            
-            painter = QPainter(final_pixmap)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            
-            # Desenha a miniatura na parte superior
-            painter.drawPixmap(0, 0, scaled_pixmap)
-            
-            # Adiciona o número da página na área inferior
-            font = self.font()
-            font.setPointSize(9)
-            font.setBold(True)
-            painter.setFont(font)
-            painter.setPen(QColor("#333333")) # Cor do texto
-            
-            # Retângulo para o texto na parte de baixo
-            text_rect = QRectF(0, scaled_pixmap.height(), final_pixmap.width(), TEXT_AREA_HEIGHT)
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, f"{page_num + 1}")
-            painter.end()
-
-            viewer.thumbnail_pixmaps[page_num] = final_pixmap
+        """Armazena o pixmap bruto e atualiza o ícone do item na lista."""
+        if page_num < len(viewer.raw_thumbnail_pixmaps):
+            viewer.raw_thumbnail_pixmaps[page_num] = pixmap
             viewer.thumbnail_orientations[page_num] = is_landscape
 
             if self._get_current_viewer() is viewer:
-                item = self.thumbnail_list.item(page_num)
-                if item:
-                    item.setIcon(QIcon(final_pixmap))
-                    # Define o tamanho do item para incluir a imagem e o texto
-                    item.setSizeHint(final_pixmap.size())
+                is_selected = (page_num == viewer.current_page_index)
+                self._update_thumbnail_icon(page_num, is_selected)
+
+    def _update_thumbnail_icon(self, page_num: int, is_selected: bool):
+        """Cria e define o ícone de uma miniatura, aplicando o destaque se necessário."""
+        viewer = self._get_current_viewer()
+        if not viewer or not (0 <= page_num < viewer.page_count()):
+            return
+
+        raw_pixmap = viewer.raw_thumbnail_pixmaps[page_num]
+        item = self.thumbnail_list.item(page_num)
+        if not raw_pixmap or not item:
+            return
+
+        TARGET_WIDTH = 130
+        TEXT_AREA_HEIGHT = 20
+        HIGHLIGHT_COLOR = QColor("#d4e8fa")
+
+        scaled_pixmap = raw_pixmap.scaledToWidth(TARGET_WIDTH, Qt.TransformationMode.SmoothTransformation)
+        final_size = QSize(scaled_pixmap.width(), scaled_pixmap.height() + TEXT_AREA_HEIGHT)
+        final_pixmap = QPixmap(final_size)
+        final_pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(final_pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        if is_selected:
+            highlight_rect = QRectF(0, 0, scaled_pixmap.width(), scaled_pixmap.height())
+            painter.fillRect(highlight_rect, HIGHLIGHT_COLOR)
+
+        painter.drawPixmap(0, 0, scaled_pixmap)
+
+        font = self.font()
+        font.setPointSize(9)
+        painter.setFont(font)
+        painter.setPen(QColor("#333333"))
+        text_rect = QRectF(0, scaled_pixmap.height(), final_pixmap.width(), TEXT_AREA_HEIGHT)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, f"{page_num + 1}")
+        painter.end()
+
+        item.setIcon(QIcon(final_pixmap))
+        item.setSizeHint(final_pixmap.size())
 
 
     def show_notification(self, message):
         logger.info(f"Exibindo notificação: '{message}'")
         self.status_bar.showMessage(message, 3000)
+
+        animation = QPropertyAnimation(self.status_bar, b"styleSheet")
+        animation.setDuration(300)
+        animation.setStartValue("QStatusBar { color: #4CAF50; }")
+        animation.setEndValue("QStatusBar { color: inherit; }")
+        animation.start()
 
     def _close_tab(self, index):
         widget = self.tab_widget.widget(index)
@@ -1071,54 +1191,66 @@ class MainWindow(QMainWindow):
             logger.info(f"Fechando aba {index}: {widget.file_path}")
             widget.close()
             self.tab_widget.removeTab(index)
-        
+
         if self.tab_widget.count() == 0:
+            self.current_selection_index = -1
             self._update_ui_for_current_tab()
 
     def _get_current_viewer(self) -> Optional[PDFViewer]:
         return self.tab_widget.currentWidget()
 
     def _on_tab_changed(self, index):
+        self.current_selection_index = -1
         self._update_ui_for_current_tab()
-        
+
     def _update_page_selection(self):
+        """Atualiza a seleção visual da miniatura e o scroll."""
         viewer = self._get_current_viewer()
         if not viewer: return
-        
-        self.page_input.setText(str(viewer.current_page_index + 1))
-        self.thumbnail_list.setCurrentRow(viewer.current_page_index)
+
+        new_selection_index = viewer.current_page_index
+
+        if self.current_selection_index != -1 and self.current_selection_index < self.thumbnail_list.count():
+             self._update_thumbnail_icon(self.current_selection_index, False)
+
+        if new_selection_index < self.thumbnail_list.count():
+            self._update_thumbnail_icon(new_selection_index, True)
+
+        self.current_selection_index = new_selection_index
+
+        self.page_input.setText(str(new_selection_index + 1))
+        self.thumbnail_list.setCurrentRow(new_selection_index)
         self.thumbnail_list.scrollToItem(
-            self.thumbnail_list.item(viewer.current_page_index),
+            self.thumbnail_list.item(new_selection_index),
             QListWidget.ScrollHint.PositionAtCenter
         )
-    
+
     def _refresh_thumbnails(self):
         """Reinicia o carregamento de todas as miniaturas para a aba atual."""
         if viewer := self._get_current_viewer():
             logger.info(f"Atualizando miniaturas para rotação: {viewer.rotation} graus.")
-            viewer.thumbnail_pixmaps = [None] * viewer.page_count()
-            self._update_ui_for_current_tab() 
+            viewer.raw_thumbnail_pixmaps = [None] * viewer.page_count()
+            self._update_ui_for_current_tab()
 
             if viewer.thumbnail_loader and viewer.thumbnail_loader.isRunning():
                 viewer.thumbnail_loader.requestInterruption()
                 viewer.thumbnail_loader.wait()
-            
+
             viewer.thumbnail_loader = ThumbnailLoaderThread(viewer.doc, viewer.rotation)
             viewer.thumbnail_loader.thumbnail_ready.connect(
                 lambda page_num, pixmap, is_landscape, v=viewer: self._on_thumbnail_ready(v, page_num, pixmap, is_landscape)
             )
             viewer.thumbnail_loader.start()
 
-
     def _update_ui_for_current_tab(self):
         viewer = self._get_current_viewer()
         is_doc_open = viewer is not None
-        
+
         if is_doc_open:
             self.view_stack.setCurrentWidget(self.tab_widget)
         else:
             self.view_stack.setCurrentWidget(self.welcome_screen)
-            
+
         doc_dependent_actions = [
             self.action_print, self.action_prev_page, self.action_next_page,
             self.action_zoom_in, self.action_zoom_out, self.action_fit_width,
@@ -1127,38 +1259,28 @@ class MainWindow(QMainWindow):
         ]
         for action in doc_dependent_actions:
             action.setEnabled(is_doc_open)
-        
+
         self.search_input.setEnabled(is_doc_open)
         self.page_input.setEnabled(is_doc_open)
         self.thumbnail_sidebar.setEnabled(is_doc_open)
         self.status_prev_page_btn.setEnabled(is_doc_open)
         self.status_next_page_btn.setEnabled(is_doc_open)
-        
+
         has_search_results = is_doc_open and viewer and len(viewer.search_results) > 0
         self.search_prev_button.setEnabled(has_search_results)
         self.search_next_button.setEnabled(has_search_results)
-        
+
         self.thumbnail_list.setUpdatesEnabled(False)
         self.thumbnail_list.clear()
-        
+
         if is_doc_open:
             self.status_zoom_label.setText(f"{int(viewer.current_zoom_factor*100)}%")
             self.page_count_label.setText(f"/ {viewer.page_count()}")
-            
+
             for i in range(viewer.page_count()):
                 item = QListWidgetItem()
-                pixmap = viewer.thumbnail_pixmaps[i]
-                if pixmap:
-                    item.setIcon(QIcon(pixmap))
-                    item.setSizeHint(pixmap.size())
-                else:
-                    # Usa um placeholder baseado na orientação, se conhecido, senão padrão
-                    is_landscape = viewer.thumbnail_orientations[i] if i < len(viewer.thumbnail_orientations) else False
-                    placeholder_height = 110 if is_landscape else 200
-                    placeholder_size = QSize(140, placeholder_height + 20) # +20 para o texto
-                    item.setSizeHint(placeholder_size)
                 self.thumbnail_list.addItem(item)
-            
+
             self._update_page_selection()
         else:
             self.status_zoom_label.setText("-")
@@ -1166,19 +1288,20 @@ class MainWindow(QMainWindow):
             self.search_results_label.setText("")
             self.page_input.setText("0")
             self.page_count_label.setText("/ 0")
-        
+
         self.thumbnail_list.setUpdatesEnabled(True)
 
     def _go_to_prev_page(self):
         if viewer := self._get_current_viewer():
             if viewer.current_page_index > 0:
+                viewer.scroll_to_bottom_on_load = True
                 viewer.display_page(viewer.current_page_index - 1)
 
     def _go_to_next_page(self):
         if viewer := self._get_current_viewer():
             if viewer.current_page_index < viewer.page_count() - 1:
                 viewer.display_page(viewer.current_page_index + 1)
-    
+
     def _go_to_page_from_input(self):
         if viewer := self._get_current_viewer():
             try:
@@ -1242,19 +1365,19 @@ class MainWindow(QMainWindow):
             self.search_results_label.setText(f"{current}/{total}")
         else:
             self.search_results_label.setText("")
-        
+
         has_results = total > 0
         self.search_prev_button.setEnabled(has_results)
         self.search_next_button.setEnabled(has_results)
 
     def _print_pdf(self):
         if not (viewer := self._get_current_viewer()): return
-        
+
         dialog = AdvancedPrintDialog(self, viewer=viewer)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             logger.info("Diálogo de impressão aceito. Iniciando processo de impressão.")
             settings = dialog.get_print_settings()
-            
+
             printer = QPrinter()
             printer.setPrinterName(settings['printer_name'])
             printer.setPageOrientation(settings['orientation'])
@@ -1271,23 +1394,21 @@ class MainWindow(QMainWindow):
             for page_num in settings['page_list']:
                 logger.debug(f"Imprimindo página {page_num}...")
                 page = doc.load_page(page_num - 1)
-                
-                # Renderiza com alta resolução para impressão (300 DPI)
+
                 pix = page.get_pixmap(matrix=fitz.Matrix(4, 4), alpha=False)
                 img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
-                
+
                 rect = painter.viewport()
                 size = img.size()
                 size.scale(rect.size(), Qt.AspectRatioMode.KeepAspectRatio)
-                
+
                 painter.setViewport(rect.x(), rect.y(), size.width(), size.height())
                 painter.setWindow(img.rect())
                 painter.drawImage(QPoint(0,0), img)
 
-                # Se não for a última página da lista, adiciona uma nova página
                 if page_num != settings['page_list'][-1]:
                     printer.newPage()
-            
+
             painter.end()
             self.show_notification("Documento enviado para a impressora.")
         else:
@@ -1304,21 +1425,21 @@ class AdvancedPrintDialog(QDialog):
         self.viewer = viewer
         self.doc = viewer.doc
         self.preview_page_index = viewer.current_page_index
-        
+        self.icon_manager = IconManager()
+
         self.setWindowTitle("Imprimir")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(850, 600)
         self.setObjectName("AdvancedPrintDialog")
 
         main_layout = QHBoxLayout(self)
         main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
-        # Coluna de Configurações (Esquerda)
         settings_widget = QWidget()
         settings_layout = QVBoxLayout(settings_widget)
         settings_layout.setContentsMargins(0, 0, 0, 0)
-        settings_layout.setSpacing(10)
-        
-        # --- Grupo Impressora ---
+        settings_layout.setSpacing(15)
+
         printer_group = QGroupBox("Impressora")
         printer_layout = QGridLayout(printer_group)
         self.printer_combo = QComboBox()
@@ -1327,13 +1448,13 @@ class AdvancedPrintDialog(QDialog):
         default_printer = QPrinterInfo.defaultPrinterName()
         if default_printer in printers:
             self.printer_combo.setCurrentText(default_printer)
-        
+
         self.copies_spinbox = QSpinBox()
         self.copies_spinbox.setMinimum(1)
         self.copies_spinbox.setValue(1)
-        
+
         self.grayscale_check = QCheckBox("Imprimir em escala de cinza (preto e branco)")
-        
+
         printer_layout.addWidget(QLabel("Nome:"), 0, 0)
         printer_layout.addWidget(self.printer_combo, 0, 1)
         printer_layout.addWidget(QLabel("Cópias:"), 1, 0)
@@ -1341,13 +1462,12 @@ class AdvancedPrintDialog(QDialog):
         printer_layout.addWidget(self.grayscale_check, 2, 0, 1, 2)
         settings_layout.addWidget(printer_group)
 
-        # --- Grupo Páginas a serem impressas ---
         pages_group = QGroupBox("Páginas a serem impressas")
         pages_layout = QVBoxLayout(pages_group)
         self.radio_all = QRadioButton(f"Tudo ({self.doc.page_count})")
         self.radio_all.setChecked(True)
         self.radio_current = QRadioButton(f"Página atual ({viewer.current_page_index + 1})")
-        
+
         range_layout = QHBoxLayout()
         self.radio_range = QRadioButton("Páginas")
         self.range_input = QLineEdit()
@@ -1362,7 +1482,6 @@ class AdvancedPrintDialog(QDialog):
         pages_layout.addLayout(range_layout)
         settings_layout.addWidget(pages_group)
 
-        # --- Grupo Orientação ---
         orientation_group = QGroupBox("Orientação")
         orientation_layout = QHBoxLayout(orientation_group)
         self.orient_auto = QRadioButton("Automático")
@@ -1377,45 +1496,69 @@ class AdvancedPrintDialog(QDialog):
         settings_layout.addStretch()
         main_layout.addWidget(settings_widget, 1)
 
-        # Coluna de Preview (Direita)
         preview_widget = QWidget()
         preview_layout = QVBoxLayout(preview_widget)
         preview_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         self.preview_view = QGraphicsView()
         self.preview_scene = QGraphicsScene(self.preview_view)
         self.preview_view.setScene(self.preview_scene)
-        self.preview_view.setStyleSheet("background-color: #dcdcdc; border: 1px solid #aaaaaa;")
+        # AJUSTE: Alinhamento centralizado para a view do preview
+        self.preview_view.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview_view.setStyleSheet("background-color: #e0e0e0; border: 1px solid #c0c0c0; border-radius: 4px;")
         preview_layout.addWidget(self.preview_view)
-        
-        preview_nav_layout = QHBoxLayout()
-        self.prev_preview_btn = QPushButton("<")
+
+        preview_nav_container = QWidget()
+        preview_nav_container.setObjectName("previewNavContainer")
+        preview_nav_layout = QHBoxLayout(preview_nav_container)
+        preview_nav_layout.setContentsMargins(0, 5, 0, 5)
+        preview_nav_layout.setSpacing(10)
+
+        self.prev_preview_btn = QPushButton(self.icon_manager.get_icon("arrow-up", "#333"), "")
         self.prev_preview_btn.clicked.connect(self.show_prev_preview)
         self.preview_label = QLabel("")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.next_preview_btn = QPushButton(">")
+        self.next_preview_btn = QPushButton(self.icon_manager.get_icon("arrow-down", "#333"), "")
         self.next_preview_btn.clicked.connect(self.show_next_preview)
-        preview_nav_layout.addWidget(self.prev_preview_btn)
-        preview_nav_layout.addWidget(self.preview_label, 1)
-        preview_nav_layout.addWidget(self.next_preview_btn)
-        preview_layout.addLayout(preview_nav_layout)
-        
-        main_layout.addWidget(preview_widget, 1)
 
-        # Botões Finais
+        preview_nav_layout.addStretch()
+        preview_nav_layout.addWidget(self.prev_preview_btn)
+        preview_nav_layout.addWidget(self.preview_label)
+        preview_nav_layout.addWidget(self.next_preview_btn)
+        preview_nav_layout.addStretch()
+        preview_layout.addWidget(preview_nav_container)
+
+        main_layout.addWidget(preview_widget, 2)
+
         self.print_button = QPushButton("Imprimir")
+        self.print_button.setObjectName("printButton")
         self.print_button.setDefault(True)
         self.cancel_button = QPushButton("Cancelar")
+        self.cancel_button.setObjectName("cancelButton")
         self.print_button.clicked.connect(self.accept)
         self.cancel_button.clicked.connect(self.reject)
-        
+
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(self.cancel_button)
         button_layout.addWidget(self.print_button)
         settings_layout.addLayout(button_layout)
-        
+
+        self.orient_auto.toggled.connect(self._update_preview)
+        self.orient_portrait.toggled.connect(self._update_preview)
+        self.orient_landscape.toggled.connect(self._update_preview)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._fit_preview_to_view)
+
+    def showEvent(self, event):
+        super().showEvent(event)
         self._update_preview()
+
+    def _fit_preview_to_view(self):
+        if self.preview_scene.items():
+            self.preview_view.fitInView(self.preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
     def show_prev_preview(self):
         if self.preview_page_index > 0:
@@ -1430,20 +1573,31 @@ class AdvancedPrintDialog(QDialog):
     def _update_preview(self):
         self.preview_scene.clear()
         page = self.doc.load_page(self.preview_page_index)
-        
+
         pix = page.get_pixmap()
         qimg = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qimg)
-        
+
+        is_landscape_selected = self.orient_landscape.isChecked()
+        is_portrait_selected = self.orient_portrait.isChecked()
+        page_is_landscape = page.rect.width > page.rect.height
+
+        if is_landscape_selected or (self.orient_auto.isChecked() and page_is_landscape):
+            if not page_is_landscape:
+                 transform = QTransform().rotate(90)
+                 pixmap = pixmap.transformed(transform, Qt.TransformationMode.SmoothTransformation)
+        elif is_portrait_selected and page_is_landscape:
+            transform = QTransform().rotate(-90)
+            pixmap = pixmap.transformed(transform, Qt.TransformationMode.SmoothTransformation)
+
         self.preview_scene.addPixmap(pixmap)
-        self.preview_view.fitInView(self.preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-        
+        self._fit_preview_to_view()
+
         self.preview_label.setText(f"Página {self.preview_page_index + 1} de {self.doc.page_count}")
         self.prev_preview_btn.setEnabled(self.preview_page_index > 0)
         self.next_preview_btn.setEnabled(self.preview_page_index < self.doc.page_count - 1)
 
     def _parse_page_ranges(self, text):
-        """Analisa a string de intervalo de páginas (ex: "1-3,5,8-10")."""
         if not text: return []
         pages = set()
         try:
@@ -1459,7 +1613,7 @@ class AdvancedPrintDialog(QDialog):
         except ValueError:
             QMessageBox.warning(self, "Intervalo Inválido", "O formato do intervalo de páginas é inválido. Use números, vírgulas e hifens, como '1-5, 8'.")
             return None
-        
+
         valid_pages = [p for p in sorted(list(pages)) if 1 <= p <= self.doc.page_count]
         return valid_pages
 
@@ -1471,7 +1625,7 @@ class AdvancedPrintDialog(QDialog):
             page_list = [self.viewer.current_page_index + 1]
         elif self.radio_range.isChecked():
             page_list = self._parse_page_ranges(self.range_input.text())
-            if page_list is None: return None # Erro na validação
+            if page_list is None: return None
 
         if not page_list:
             QMessageBox.warning(self, "Nenhuma Página Selecionada", "Você deve selecionar ao menos uma página para imprimir.")
@@ -1481,7 +1635,6 @@ class AdvancedPrintDialog(QDialog):
         if self.orient_landscape.isChecked():
             orientation = QPageLayout.Orientation.Landscape
         elif self.orient_auto.isChecked():
-            # Lógica simples para orientação automática baseada na primeira página
             page = self.doc.load_page(page_list[0] - 1)
             if page.rect.width > page.rect.height:
                 orientation = QPageLayout.Orientation.Landscape
@@ -1501,10 +1654,10 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar a aplicação."""
-    logger.info("Iniciando QuantumPDF v8.4...")
+    logger.info("Iniciando QuantumPDF v8.8...")
     app = QApplication(sys.argv)
-    
-    server_name = "QuantumPDF_SingleInstance_Server_v8.4"
+
+    server_name = "QuantumPDF_SingleInstance_Server_v8.8"
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
@@ -1520,11 +1673,11 @@ def main():
         socket.disconnectFromServer()
         logger.info("Saindo da nova instância.")
         sys.exit(0)
-    
+
     else:
         logger.info("Nenhuma instância existente encontrada. Iniciando novo servidor.")
         window = MainWindow()
-        
+
         server = QLocalServer(window)
         if not server.listen(server_name):
              logger.critical(f"Não foi possível iniciar o servidor local: {server.errorString()}")
@@ -1544,7 +1697,7 @@ def main():
                     new_socket.disconnectFromServer()
                 else:
                     logger.warning("Timeout ao esperar dados do socket.")
-            
+
             logger.info("Trazendo a janela principal para primeiro plano.")
             window.setWindowState(window.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
             window.show()
@@ -1552,14 +1705,14 @@ def main():
             window.raise_()
 
         server.newConnection.connect(handle_new_connection)
-        
+
         if len(sys.argv) > 1:
             file_path = sys.argv[1]
             if os.path.exists(file_path):
                 window._add_new_tab(file_path)
             else:
                 logger.error(f"Arquivo '{file_path}' passado como argumento não foi encontrado.")
-        
+
         window.show()
         logger.info("Loop de eventos da aplicação iniciado.")
         sys.exit(app.exec())
@@ -1570,4 +1723,3 @@ if __name__ == "__main__":
     except Exception:
         logger.critical("Uma exceção fatal ocorreu na função main:", exc_info=True)
         sys.exit(1)
-
