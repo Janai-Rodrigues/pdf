@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v8.9 - Centralização Perfeita do Preview de Impressão
+#   QuantumPDF v9.2 - Controles Agrupados
 #   Autor: Gemini
 #   Data: 14/08/2025
 #
-#   Recursos Principais (v8.9):
-#   - Preview de Impressão Sempre Centralizado: A miniatura na janela de
-#     impressão agora permanece perfeitamente centralizada em todas as
-#     situações, seja ao abrir a janela ou ao alternar entre as orientações.
+#   Recursos Principais (v9.2):
+#   - Agrupamento de Controles: Reduzido o espaçamento entre os ícones de
+#     navegação de página na barra de status para um visual mais coeso.
 #
 # #############################################################################
 
@@ -92,11 +91,11 @@ class IconManager:
         "rotate-left": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>""",
         "select": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 2.5-7.5L19 12l-16-9z"></path></svg>""",
         "hand": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-1.8-4-4l1.4-1.4"></path></svg>""",
-        "close": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>""",
-        "minimize": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>""",
-        "maximize": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>""",
-        "restore": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>""",
-        "welcome_file": """<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>"""
+        "close": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F44336" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>""",
+        "minimize": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>""",
+        "maximize": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#eba206" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>""",
+        "restore": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#eba206" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>""",
+        "welcome_file": """<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>"""
     }
 
     def __new__(cls):
@@ -144,13 +143,15 @@ class WelcomeScreen(QWidget):
 
         icon_manager = IconManager()
         icon_label = QLabel()
-        icon_pixmap = icon_manager.get_icon("welcome_file", "#B0BEC5").pixmap(QSize(96, 96))
+        icon_pixmap = icon_manager.get_icon("welcome_file", "#E73B58").pixmap(QSize(96, 96))
         icon_label.setPixmap(icon_pixmap)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         title_label = QLabel("QuantumPDF")
+        title_label.setStyleSheet("font-weight: bold; color: #E73B58;")
         title_label.setObjectName("welcomeTitle")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
 
         subtitle_label = QLabel("Nenhum arquivo aberto")
         subtitle_label.setObjectName("welcomeSubtitle")
@@ -477,7 +478,7 @@ class PDFViewer(QWidget):
             logger.debug("Seleção de área sem texto extraível.")
 
     def _handle_page_scroll(self, direction: int):
-        """Muda de página quando o usuário rola o mouse até o limite."""
+        """Muda de página quando o usuário rola o cozinho até o limite."""
         if direction > 0 and self.current_page_index < self.page_count() - 1:
             self.display_page(self.current_page_index + 1)
         elif direction < 0 and self.current_page_index > 0:
@@ -621,7 +622,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v8.8")
+        self.setWindowTitle("QuantumPDF v9.2") # MODIFICADO: Versão atualizada
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -744,10 +745,15 @@ class MainWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        status_right_container = QWidget()
-        status_right_layout = QHBoxLayout(status_right_container)
-        status_right_layout.setContentsMargins(0, 0, 5, 0)
-        status_right_layout.setSpacing(2)
+        status_main_widget = QWidget()
+        status_main_layout = QHBoxLayout(status_main_widget)
+        status_main_layout.setContentsMargins(0, 0, 5, 0)
+        status_main_layout.setSpacing(0)
+
+        nav_container = QWidget()
+        nav_layout = QHBoxLayout(nav_container)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(0)
 
         self.status_prev_page_btn = QPushButton(self.icon_manager.get_icon("arrow-up", "#333"), "")
         self.status_prev_page_btn.setFixedSize(22,22)
@@ -758,30 +764,33 @@ class MainWindow(QMainWindow):
         self.page_input.returnPressed.connect(self._go_to_page_from_input)
         self.page_input.setFixedWidth(45)
         self.page_input.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # MODIFICAÇÃO: Margens reduzidas para aproximar os controles.
+        self.page_input.setStyleSheet("margin-left: 2px; margin-right: 1px;")
 
         self.page_count_label = QLabel("/ 0")
         self.page_count_label.setFixedWidth(40)
+        # MODIFICAÇÃO: Margem reduzida para aproximar os controles.
+        self.page_count_label.setStyleSheet("margin-right: 2px;")
 
         self.status_next_page_btn = QPushButton(self.icon_manager.get_icon("arrow-down", "#333"), "")
         self.status_next_page_btn.setFixedSize(22,22)
         self.status_next_page_btn.clicked.connect(self._go_to_next_page)
 
+        nav_layout.addWidget(self.status_prev_page_btn)
+        nav_layout.addWidget(self.page_input)
+        nav_layout.addWidget(self.page_count_label)
+        nav_layout.addWidget(self.status_next_page_btn)
+
         self.status_zoom_label = QLabel("100%")
         self.status_zoom_label.setFixedWidth(50)
         self.status_zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        line_sep = QFrame()
-        line_sep.setFrameShape(QFrame.Shape.VLine)
-        line_sep.setFrameShadow(QFrame.Shadow.Sunken)
+        status_main_layout.addStretch()
+        status_main_layout.addWidget(nav_container)
+        status_main_layout.addStretch()
+        status_main_layout.addWidget(self.status_zoom_label)
 
-        status_right_layout.addWidget(self.status_prev_page_btn)
-        status_right_layout.addWidget(self.page_input)
-        status_right_layout.addWidget(self.page_count_label)
-        status_right_layout.addWidget(self.status_next_page_btn)
-        status_right_layout.addWidget(line_sep)
-        status_right_layout.addWidget(self.status_zoom_label)
-
-        self.status_bar.addPermanentWidget(status_right_container)
+        self.status_bar.addWidget(status_main_widget, 1)
 
 
     def _toggle_maximize(self):
@@ -836,12 +845,12 @@ class MainWindow(QMainWindow):
             QMainWindow {{ background-color: #ffffff; }}
             #customTitleBar {{
                 background-color: #f0f2f5;
-                border-bottom: 1px solid #dcdcdc;
+                border-bottom: 2px solid #dbdbdb;
                 padding: 5px 0;
             }}
-            #titleLabel {{ color: #333; font-weight: bold; }}
+            #titleLabel {{ color: #E73B58; font-weight: bold; font-size: 20px; }}
             QPushButton {{ border: none; border-radius: 4px; outline: none; }}
-            #customTitleBar QPushButton:hover {{ background-color: #e0e0e0; }}
+            #customTitleBar QPushButton:hover {{ background-color: #dddddd; }}
             #closeButton:hover {{ background-color: #ff6e6e; }}
 
             #customTitleBar QLineEdit {{
@@ -851,19 +860,19 @@ class MainWindow(QMainWindow):
                 margin: 0;
             }}
             #customTitleBar QLineEdit:focus {{
-                border: 1px solid #4d90fe;
+                border: 2px solid #95b7ee;
                 background-color: #ffffff;
             }}
 
             #thumbnailSidebar {{
                 background-color: #f0f2f5;
-                border-right: 1px solid #dcdcdc;
+                border-right: 2px solid #dbdbdb;
             }}
             #thumbnailSidebar QLabel {{ color: #333333; font-weight: bold; }}
-            #toolSidebar {{ background-color: #f0f2f5; border-left: 1px solid #dcdcdc; }}
+            #toolSidebar {{ background-color: #f0f2f5; border-left: 2px solid #dbdbdb; }}
 
             #toolSidebar QPushButton {{
-                border: 1px solid transparent; padding: 4px; margin: 1px 0; border-radius: 4px;
+                border: 0px solid transparent; padding: 4px; margin: 1px 0; border-radius: 4px;
             }}
             #toolSidebar QPushButton:hover {{ background-color: #e0e0e0; border-color: #ccc; }}
             #toolSidebar QPushButton:checked {{
@@ -884,7 +893,7 @@ class MainWindow(QMainWindow):
 
             QStatusBar {{
                 background-color: #f0f2f5;
-                border-top: 1px solid #dcdcdc;
+                border-top: 2px solid #dbdbdb;
                 padding: 2px;
             }}
             QStatusBar QLineEdit {{ padding: 1px 4px; }}
@@ -1025,7 +1034,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(10, 10, 5, 10)
         layout.setSpacing(10)
 
-        layout.addWidget(QLabel("Miniaturas"))
+        layout.addWidget(QLabel(""))
         self.thumbnail_list = ThumbnailListWidget()
         self.thumbnail_list.page_selected.connect(self._go_to_page_from_thumbnail)
         layout.addWidget(self.thumbnail_list)
@@ -1035,7 +1044,7 @@ class MainWindow(QMainWindow):
     def _create_tool_sidebar(self):
         sidebar = QWidget()
         sidebar.setObjectName("toolSidebar")
-        sidebar.setFixedWidth(65)
+        sidebar.setFixedWidth(50)
 
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -1103,6 +1112,11 @@ class MainWindow(QMainWindow):
                 logger.warning(f"Arquivo '{file_path}' já está aberto. Trocando para a aba existente.")
                 self.tab_widget.setCurrentIndex(i)
                 return
+        self.showMaximized()
+        self.raise_()
+        self.showMaximized()
+        self.raise_()
+        self.activateWindow()
 
         viewer = PDFViewer(file_path, self)
         if not viewer.doc:
@@ -1654,10 +1668,10 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar a aplicação."""
-    logger.info("Iniciando QuantumPDF v8.8...")
+    logger.info("Iniciando QuantumPDF v9.2...") # MODIFICADO: Versão atualizada
     app = QApplication(sys.argv)
 
-    server_name = "QuantumPDF_SingleInstance_Server_v8.8"
+    server_name = "QuantumPDF_SingleInstance_Server_v9.2" # MODIFICADO: Versão atualizada
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
@@ -1698,9 +1712,9 @@ def main():
                 else:
                     logger.warning("Timeout ao esperar dados do socket.")
 
-            logger.info("Trazendo a janela principal para primeiro plano.")
-            window.setWindowState(window.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
-            window.show()
+            # MODIFICAÇÃO: Garante que a janela será maximizada e trazida para primeiro plano.
+            logger.info("Trazendo a janela principal para primeiro plano e maximizando.")
+            window.showMaximized()
             window.activateWindow()
             window.raise_()
 
@@ -1713,7 +1727,7 @@ def main():
             else:
                 logger.error(f"Arquivo '{file_path}' passado como argumento não foi encontrado.")
 
-        window.show()
+        window.showMaximized() # MODIFICADO: Iniciar sempre maximizado.
         logger.info("Loop de eventos da aplicação iniciado.")
         sys.exit(app.exec())
 
