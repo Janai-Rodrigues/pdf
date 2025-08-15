@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v9.2 - Controles Agrupados
-#   Autor: Gemini
-#   Data: 14/08/2025
+#   QuantumPDF v9.5 - Foco Definitivo
+#   Autor: Gemini & Janaí
+#   Data: 15/08/2025
 #
-#   Recursos Principais (v9.2):
-#   - Agrupamento de Controles: Reduzido o espaçamento entre os ícones de
-#     navegação de página na barra de status para um visual mais coeso.
+#   Recursos Principais (v9.5):
+#   - Foco Definitivo: Implementada lógica de foco unificada (_bring_to_front)
+#     e permissão explícita ao Windows (AllowSetForegroundWindow) para
+#     garantir que a janela sempre vá para o primeiro plano.
 #
 # #############################################################################
 
@@ -622,7 +623,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v9.2") # MODIFICADO: Versão atualizada
+        self.setWindowTitle("QuantumPDF v9.5") # MODIFICADO: Versão atualizada
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -764,12 +765,10 @@ class MainWindow(QMainWindow):
         self.page_input.returnPressed.connect(self._go_to_page_from_input)
         self.page_input.setFixedWidth(45)
         self.page_input.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # MODIFICAÇÃO: Margens reduzidas para aproximar os controles.
         self.page_input.setStyleSheet("margin-left: 2px; margin-right: 1px;")
 
         self.page_count_label = QLabel("/ 0")
         self.page_count_label.setFixedWidth(40)
-        # MODIFICAÇÃO: Margem reduzida para aproximar os controles.
         self.page_count_label.setStyleSheet("margin-right: 2px;")
 
         self.status_next_page_btn = QPushButton(self.icon_manager.get_icon("arrow-down", "#333"), "")
@@ -1111,12 +1110,8 @@ class MainWindow(QMainWindow):
             if viewer and viewer.file_path == file_path:
                 logger.warning(f"Arquivo '{file_path}' já está aberto. Trocando para a aba existente.")
                 self.tab_widget.setCurrentIndex(i)
+                self._bring_to_front() # Garante o foco mesmo se a aba já existir
                 return
-        self.showMaximized()
-        self.raise_()
-        self.showMaximized()
-        self.raise_()
-        self.activateWindow()
 
         viewer = PDFViewer(file_path, self)
         if not viewer.doc:
@@ -1137,6 +1132,9 @@ class MainWindow(QMainWindow):
         self._refresh_thumbnails()
 
         QTimer.singleShot(50, viewer.fit_to_page)
+        
+        # MODIFICAÇÃO (v9.5): Chama o método unificado de foco.
+        self._bring_to_front()
 
     def _on_thumbnail_ready(self, viewer: PDFViewer, page_num: int, pixmap: QPixmap, is_landscape: bool):
         """Armazena o pixmap bruto e atualiza o ícone do item na lista."""
@@ -1428,6 +1426,31 @@ class MainWindow(QMainWindow):
         else:
             logger.info("Diálogo de impressão cancelado.")
 
+    # MODIFICAÇÃO (v9.5): Método unificado para trazer a janela para frente.
+    def _bring_to_front(self):
+        """Força a janela a vir para frente em qualquer SO"""
+        logger.info("Tentando trazer a janela para o primeiro plano.")
+        # Restaura se estiver minimizada e garante que está visível
+        self.setWindowState((self.windowState() & ~Qt.WindowState.WindowMinimized) | Qt.WindowState.WindowActive)
+        self.show()           
+        self.raise_()         
+        self.activateWindow() 
+
+        # Windows: força via Win32 API para maior confiabilidade
+        if sys.platform.startswith("win"):
+            try:
+                import ctypes
+                SW_RESTORE = 9
+                hwnd = int(self.winId())
+                ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
+                ctypes.windll.user32.SetForegroundWindow(hwnd)
+                logger.debug(f"Foco forçado via Win32 API para HWND: {hwnd}")
+            except Exception as e:
+                logger.debug(f"Win32 foco falhou: {e}")
+
+        # Fallback: piscar na barra se ainda assim não tiver foco
+        QApplication.alert(self, 3000)
+
     def closeEvent(self, event):
         logger.info("Sinal de fechamento recebido. Encerrando a aplicação.")
         super().closeEvent(event)
@@ -1517,7 +1540,6 @@ class AdvancedPrintDialog(QDialog):
         self.preview_view = QGraphicsView()
         self.preview_scene = QGraphicsScene(self.preview_view)
         self.preview_view.setScene(self.preview_scene)
-        # AJUSTE: Alinhamento centralizado para a view do preview
         self.preview_view.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_view.setStyleSheet("background-color: #e0e0e0; border: 1px solid #c0c0c0; border-radius: 4px;")
         preview_layout.addWidget(self.preview_view)
@@ -1668,15 +1690,26 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar a aplicação."""
-    logger.info("Iniciando QuantumPDF v9.2...") # MODIFICADO: Versão atualizada
+    logger.info("Iniciando QuantumPDF v9.5...") # MODIFICADO: Versão atualizada
     app = QApplication(sys.argv)
 
-    server_name = "QuantumPDF_SingleInstance_Server_v9.2" # MODIFICADO: Versão atualizada
+    server_name = "QuantumPDF_SingleInstance_Server_v9.5" # MODIFICADO: Versão atualizada
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
     if socket.waitForConnected(500):
         logger.info("Instância existente do QuantumPDF encontrada.")
+        
+        # MODIFICAÇÃO (v9.5): Autoriza a instância principal a roubar o foco.
+        if sys.platform.startswith("win"):
+            try:
+                import ctypes
+                ASFW_ANY = -1
+                ctypes.windll.user32.AllowSetForegroundWindow(ASFW_ANY)
+                logger.debug("AllowSetForegroundWindow(ASFW_ANY) chamado com sucesso.")
+            except Exception as e:
+                logger.debug(f"AllowSetForegroundWindow falhou: {e}")
+
         if len(sys.argv) > 1:
             file_path = sys.argv[1]
             logger.info(f"Enviando caminho do arquivo '{file_path}' para a instância existente.")
@@ -1712,11 +1745,8 @@ def main():
                 else:
                     logger.warning("Timeout ao esperar dados do socket.")
 
-            # MODIFICAÇÃO: Garante que a janela será maximizada e trazida para primeiro plano.
-            logger.info("Trazendo a janela principal para primeiro plano e maximizando.")
-            window.showMaximized()
-            window.activateWindow()
-            window.raise_()
+            # MODIFICAÇÃO (v9.5): Chama o método unificado de foco.
+            window._bring_to_front()
 
         server.newConnection.connect(handle_new_connection)
 
@@ -1727,7 +1757,7 @@ def main():
             else:
                 logger.error(f"Arquivo '{file_path}' passado como argumento não foi encontrado.")
 
-        window.showMaximized() # MODIFICADO: Iniciar sempre maximizado.
+        window.showMaximized()
         logger.info("Loop de eventos da aplicação iniciado.")
         sys.exit(app.exec())
 
