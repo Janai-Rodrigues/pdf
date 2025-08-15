@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v9.5 - Foco Definitivo
+#   QuantumPDF v10.0 - Melhorias na Impressão
 #   Autor: Gemini & Janaí
 #   Data: 15/08/2025
 #
-#   Recursos Principais (v9.5):
-#   - Foco Definitivo: Implementada lógica de foco unificada (_bring_to_front)
-#     e permissão explícita ao Windows (AllowSetForegroundWindow) para
-#     garantir que a janela sempre vá para o primeiro plano.
+#   Recursos Principais (v10.0):
+#   - Qualidade da Pré-visualização: A miniatura na tela de impressão
+#     agora é renderizada com o dobro da resolução para maior nitidez.
+#   - Centralização da Miniatura: Corrigido o problema que fazia a
+#     miniatura sair do centro ao alternar a orientação (retrato/paisagem).
 #
 # #############################################################################
 
@@ -86,8 +87,8 @@ class IconManager:
         "fit-width": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>""",
         "fit-page": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 3 3 3 3 9"></polyline><polyline points="15 21 21 21 21 15"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="21" y1="21" x2="14" y2="14"></line></svg>""",
         "search": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>""",
-        "arrow-up": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>""",
-        "arrow-down": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>""",
+        "arrow-up": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>""",
+        "arrow-down": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>""",
         "rotate-right": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>""",
         "rotate-left": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>""",
         "select": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 2.5-7.5L19 12l-16-9z"></path></svg>""",
@@ -623,7 +624,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v9.5") # MODIFICADO: Versão atualizada
+        self.setWindowTitle("QuantumPDF v9.9") # MODIFICADO: Versão atualizada
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -746,51 +747,59 @@ class MainWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
+        # Widget principal para todo o conteúdo da barra de status
         status_main_widget = QWidget()
         status_main_layout = QHBoxLayout(status_main_widget)
-        status_main_layout.setContentsMargins(0, 0, 5, 0)
-        status_main_layout.setSpacing(0)
+        status_main_layout.setContentsMargins(10, 0, 10, 0)
+        status_main_layout.setSpacing(5)
 
+        # Container para os controles de navegação para mantê-los agrupados
         nav_container = QWidget()
         nav_layout = QHBoxLayout(nav_container)
         nav_layout.setContentsMargins(0, 0, 0, 0)
-        nav_layout.setSpacing(0)
+        nav_layout.setSpacing(5)
 
+        # Botão de Página Anterior
         self.status_prev_page_btn = QPushButton(self.icon_manager.get_icon("arrow-up", "#333"), "")
-        self.status_prev_page_btn.setFixedSize(22,22)
+        self.status_prev_page_btn.setFixedSize(24, 24)
         self.status_prev_page_btn.clicked.connect(self._go_to_prev_page)
 
+        # Input do Número da Página
         self.page_input = QLineEdit("0")
         self.page_input.setValidator(QIntValidator(1, 9999))
         self.page_input.returnPressed.connect(self._go_to_page_from_input)
-        self.page_input.setFixedWidth(45)
-        self.page_input.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.page_input.setStyleSheet("margin-left: 2px; margin-right: 1px;")
+        self.page_input.setFixedWidth(50)
+        self.page_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # Label de Contagem de Páginas
         self.page_count_label = QLabel("/ 0")
-        self.page_count_label.setFixedWidth(40)
-        self.page_count_label.setStyleSheet("margin-right: 2px;")
+        self.page_count_label.setFixedWidth(45)
 
+        # Botão de Próxima Página
         self.status_next_page_btn = QPushButton(self.icon_manager.get_icon("arrow-down", "#333"), "")
-        self.status_next_page_btn.setFixedSize(22,22)
+        self.status_next_page_btn.setFixedSize(24, 24)
         self.status_next_page_btn.clicked.connect(self._go_to_next_page)
 
+        # Adiciona os widgets ao layout de navegação
         nav_layout.addWidget(self.status_prev_page_btn)
         nav_layout.addWidget(self.page_input)
         nav_layout.addWidget(self.page_count_label)
         nav_layout.addWidget(self.status_next_page_btn)
+        nav_container.setLayout(nav_layout)
 
+        # O label de zoom ficará à direita
         self.status_zoom_label = QLabel("100%")
         self.status_zoom_label.setFixedWidth(50)
         self.status_zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        status_main_layout.addStretch()
+        # Adiciona os elementos ao layout principal da barra de status
+        status_main_layout.addStretch(1) # Empurra o nav_container para o centro
         status_main_layout.addWidget(nav_container)
-        status_main_layout.addStretch()
+        status_main_layout.addStretch(1) # Empurra o zoom_label para a direita
         status_main_layout.addWidget(self.status_zoom_label)
 
+        # Adiciona o widget principal à barra de status
         self.status_bar.addWidget(status_main_widget, 1)
-
 
     def _toggle_maximize(self):
         if self.isMaximized():
@@ -895,7 +904,15 @@ class MainWindow(QMainWindow):
                 border-top: 2px solid #dbdbdb;
                 padding: 2px;
             }}
-            QStatusBar QLineEdit {{ padding: 1px 4px; }}
+            QStatusBar QLineEdit {{
+                padding: 2px 4px;
+                border: 1px solid #c0c0c0;
+                border-radius: 4px;
+                background-color: #ffffff;
+            }}
+            QStatusBar QLineEdit:focus {{
+                border: 1px solid #0078d7;
+            }}
             QStatusBar QPushButton {{
                 border: none;
                 background-color: transparent;
@@ -1049,24 +1066,32 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(5)
 
+        # Grupo Superior de Botões
         layout.addWidget(self._create_tool_button(self.action_open))
         layout.addWidget(self._create_tool_button(self.action_print))
-        layout.addWidget(self._create_separator())
-        layout.addWidget(self._create_tool_button(self.action_prev_page))
-        layout.addWidget(self._create_tool_button(self.action_next_page))
-        layout.addWidget(self._create_separator())
-        layout.addWidget(self._create_tool_button(self.action_zoom_in))
-        layout.addWidget(self._create_tool_button(self.action_zoom_out))
-        layout.addWidget(self._create_tool_button(self.action_fit_width))
-        layout.addWidget(self._create_tool_button(self.action_fit_page))
-        layout.addWidget(self._create_separator())
-        layout.addWidget(self._create_tool_button(self.action_rotate_left))
-        layout.addWidget(self._create_tool_button(self.action_rotate_right))
         layout.addWidget(self._create_separator())
         layout.addWidget(self._create_tool_button(self.action_select_mode))
         layout.addWidget(self._create_tool_button(self.action_pan_mode))
 
+        # Espaço flexível que empurra os próximos widgets para baixo
         layout.addStretch()
+
+        # Grupo de Navegação de Página (acima da rotação)
+        layout.addWidget(self._create_tool_button(self.action_prev_page))
+        layout.addWidget(self._create_tool_button(self.action_next_page))
+        layout.addWidget(self._create_separator())
+        
+        # Grupo de Rotação (acima do grupo de zoom)
+        layout.addWidget(self._create_tool_button(self.action_rotate_left))
+        layout.addWidget(self._create_tool_button(self.action_rotate_right))
+        layout.addWidget(self._create_separator())
+
+        # Grupo de Zoom (no final)
+        layout.addWidget(self._create_tool_button(self.action_zoom_in))
+        layout.addWidget(self._create_tool_button(self.action_zoom_out))
+        layout.addWidget(self._create_tool_button(self.action_fit_width))
+        layout.addWidget(self._create_tool_button(self.action_fit_page))
+
         return sidebar
 
     def _create_separator(self):
@@ -1133,7 +1158,6 @@ class MainWindow(QMainWindow):
 
         QTimer.singleShot(50, viewer.fit_to_page)
         
-        # MODIFICAÇÃO (v9.5): Chama o método unificado de foco.
         self._bring_to_front()
 
     def _on_thumbnail_ready(self, viewer: PDFViewer, page_num: int, pixmap: QPixmap, is_landscape: bool):
@@ -1426,13 +1450,14 @@ class MainWindow(QMainWindow):
         else:
             logger.info("Diálogo de impressão cancelado.")
 
-    # MODIFICAÇÃO (v9.5): Método unificado para trazer a janela para frente.
     def _bring_to_front(self):
         """Força a janela a vir para frente em qualquer SO"""
         logger.info("Tentando trazer a janela para o primeiro plano.")
         # Restaura se estiver minimizada e garante que está visível
         self.setWindowState((self.windowState() & ~Qt.WindowState.WindowMinimized) | Qt.WindowState.WindowActive)
-        self.show()           
+        
+        # self.show() # REMOVIDO (v9.6): Esta linha causa a restauração da janela se ela já estiver maximizada.
+        
         self.raise_()         
         self.activateWindow() 
 
@@ -1594,7 +1619,9 @@ class AdvancedPrintDialog(QDialog):
 
     def _fit_preview_to_view(self):
         if self.preview_scene.items():
+            # MODIFICAÇÃO (v10.0): Centraliza a miniatura corretamente
             self.preview_view.fitInView(self.preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            self.preview_view.centerOn(self.preview_scene.sceneRect().center())
 
     def show_prev_preview(self):
         if self.preview_page_index > 0:
@@ -1610,7 +1637,8 @@ class AdvancedPrintDialog(QDialog):
         self.preview_scene.clear()
         page = self.doc.load_page(self.preview_page_index)
 
-        pix = page.get_pixmap()
+        # MODIFICAÇÃO (v10.0): Renderiza com 2x a resolução para melhor qualidade
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
         qimg = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qimg)
 
@@ -1627,6 +1655,9 @@ class AdvancedPrintDialog(QDialog):
             pixmap = pixmap.transformed(transform, Qt.TransformationMode.SmoothTransformation)
 
         self.preview_scene.addPixmap(pixmap)
+        
+        # A cena precisa ter seu retângulo atualizado para que o fitInView funcione corretamente
+        self.preview_scene.setSceneRect(self.preview_scene.itemsBoundingRect())
         self._fit_preview_to_view()
 
         self.preview_label.setText(f"Página {self.preview_page_index + 1} de {self.doc.page_count}")
@@ -1689,18 +1720,17 @@ class AdvancedPrintDialog(QDialog):
         super().accept()
 
 def main():
-    """Função principal para iniciar a aplicação."""
-    logger.info("Iniciando QuantumPDF v9.5...") # MODIFICADO: Versão atualizada
+    """Função principal para iniciar la aplicação."""
+    logger.info("Iniciando QuantumPDF v10.0...") # MODIFICADO: Versão atualizada
     app = QApplication(sys.argv)
 
-    server_name = "QuantumPDF_SingleInstance_Server_v9.5" # MODIFICADO: Versão atualizada
+    server_name = "QuantumPDF_SingleInstance_Server_v10.0" # MODIFICADO: Versão atualizada
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
     if socket.waitForConnected(500):
         logger.info("Instância existente do QuantumPDF encontrada.")
         
-        # MODIFICAÇÃO (v9.5): Autoriza a instância principal a roubar o foco.
         if sys.platform.startswith("win"):
             try:
                 import ctypes
@@ -1745,7 +1775,6 @@ def main():
                 else:
                     logger.warning("Timeout ao esperar dados do socket.")
 
-            # MODIFICAÇÃO (v9.5): Chama o método unificado de foco.
             window._bring_to_front()
 
         server.newConnection.connect(handle_new_connection)
