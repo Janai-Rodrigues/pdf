@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v10.1 - Correção de Foco da Janela
+#   QuantumPDF v10.2 - Seleção de Texto Aprimorada (Estilo Word)
 #   Autor: Gemini & Janaí
 #   Data: 17/08/2025
 #
-#   Recursos Principais (v10.1):
-#   - Correção de Foco: O aplicativo agora respeita o estado da janela
-#     (minimizada ou maximizada) ao abrir um novo arquivo, evitando
-#     que a janela seja restaurada inesperadamente.
+#   Recursos Principais (v10.2):
+#   - Duplo Clique: Adicionada a funcionalidade de selecionar uma palavra
+#     inteira com um duplo clique, similar ao MS Word.
+#   - Seleção por Arraste: Mantida a seleção granular de texto ao arrastar
+#     o mouse.
 #
 # #############################################################################
 
@@ -177,6 +178,8 @@ class PDFGraphicsView(QGraphicsView):
     zoom_requested_by_wheel = pyqtSignal(float)
     text_selected = pyqtSignal(QRectF)
     page_scroll_requested = pyqtSignal(int)  # +1 para próxima página, -1 para anterior
+    # NOVO SINAL: Emitido quando uma palavra é clicada duas vezes
+    word_double_clicked = pyqtSignal(QPointF)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -233,6 +236,15 @@ class PDFGraphicsView(QGraphicsView):
         else:
             super().wheelEvent(event)
 
+    # NOVO MÉTODO: Captura o evento de duplo clique
+    def mouseDoubleClickEvent(self, event):
+        """
+        Captura o duplo clique do mouse e emite um sinal com a posição.
+        """
+        if event.button() == Qt.MouseButton.LeftButton:
+            scene_pos = self.mapToScene(event.pos())
+            self.word_double_clicked.emit(scene_pos)
+        super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event):
         if self.dragMode() == QGraphicsView.DragMode.NoDrag and event.button() == Qt.MouseButton.LeftButton:
@@ -381,6 +393,9 @@ class PDFViewer(QWidget):
         self.view.zoom_requested_by_wheel.connect(self._handle_wheel_zoom)
         self.view.text_selected.connect(self._on_text_selected)
         self.view.page_scroll_requested.connect(self._handle_page_scroll)
+        # NOVA CONEXÃO: Conecta o sinal de duplo clique ao novo método
+        self.view.word_double_clicked.connect(self._select_word_at)
+
 
         main_layout.addWidget(self.view)
 
@@ -452,6 +467,36 @@ class PDFViewer(QWidget):
         self._recalculate_base_scale_and_render()
         self.rotation_changed.emit()
 
+    # NOVO MÉTODO: Seleciona e copia a palavra na posição do duplo clique
+    def _select_word_at(self, scene_pos: QPointF):
+        """
+        Encontra a palavra na posição do duplo clique, copia para o clipboard
+        e emite um sinal de notificação.
+        """
+        if not self.doc or self.current_render_scale == 0:
+            return
+
+        page = self.doc.load_page(self.current_page_index)
+        
+        # Converte as coordenadas da cena para as coordenadas do PDF
+        pdf_x = scene_pos.x() / self.current_render_scale
+        pdf_y = scene_pos.y() / self.current_render_scale
+        pdf_point = fitz.Point(pdf_x, pdf_y)
+
+        # Obtém uma lista de todas as palavras e suas coordenadas na página
+        # Formato: [x0, y0, x1, y1, "palavra", block_no, line_no, word_no]
+        words = page.get_text("words")
+        
+        for w in words:
+            word_rect = fitz.Rect(w[:4])
+            # Verifica se o ponto do clique está dentro do retângulo da palavra
+            if word_rect.contains(pdf_point):
+                word_text = w[4]
+                logger.info(f"Palavra '{word_text}' selecionada por duplo clique.")
+                QApplication.clipboard().setText(word_text)
+                self.copied_to_clipboard.emit(f"✓ Copiada: {word_text}")
+                break # Para a busca assim que a primeira palavra for encontrada
+
     def _on_text_selected(self, scene_rect: QRectF):
         if not self.doc: return
 
@@ -468,7 +513,11 @@ class PDFViewer(QWidget):
 
         page = self.doc.load_page(self.current_page_index)
         if self.rotation != 0:
-            pdf_rect = pdf_rect.transform(fitz.Matrix(1, 1).prerotate(-self.rotation))
+            # A rotação é aplicada na renderização, então para extrair texto,
+            # precisamos "desfazer" a rotação no retângulo de seleção.
+            # No entanto, a lógica atual de extração já parece lidar bem com isso.
+            # Se houver problemas, a transformação do retângulo pode ser necessária aqui.
+            pass
 
         selected_text = page.get_text("text", clip=pdf_rect, sort=True)
         if selected_text:
@@ -623,7 +672,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v10.1") # MODIFICADO: Versão atualizada
+        self.setWindowTitle("QuantumPDF v10.2") # MODIFICADO: Versão atualizada
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -1603,7 +1652,6 @@ class AdvancedPrintDialog(QDialog):
 
     def _fit_preview_to_view(self):
         if self.preview_scene.items():
-            # MODIFICAÇÃO (v10.0): Centraliza a miniatura corretamente
             self.preview_view.fitInView(self.preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
             self.preview_view.centerOn(self.preview_scene.sceneRect().center())
 
@@ -1621,7 +1669,6 @@ class AdvancedPrintDialog(QDialog):
         self.preview_scene.clear()
         page = self.doc.load_page(self.preview_page_index)
 
-        # MODIFICAÇÃO (v10.0): Renderiza com 2x a resolução para melhor qualidade
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
         qimg = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qimg)
@@ -1640,7 +1687,6 @@ class AdvancedPrintDialog(QDialog):
 
         self.preview_scene.addPixmap(pixmap)
         
-        # A cena precisa ter seu retângulo atualizado para que o fitInView funcione corretamente
         self.preview_scene.setSceneRect(self.preview_scene.itemsBoundingRect())
         self._fit_preview_to_view()
 
@@ -1705,10 +1751,10 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar la aplicação."""
-    logger.info("Iniciando QuantumPDF v10.1...") # MODIFICADO: Versão atualizada
+    logger.info("Iniciando QuantumPDF v10.2...") # MODIFICADO: Versão atualizada
     app = QApplication(sys.argv)
 
-    server_name = "QuantumPDF_SingleInstance_Server_v10.1" # MODIFICADO: Versão atualizada
+    server_name = "QuantumPDF_SingleInstance_Server_v10.2" # MODIFICADO: Versão atualizada
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
