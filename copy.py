@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v10.6 - Alternar Visibilidade pelo Ícone (Correção)
+#   QuantumPDF v10.8 - Seleção de Texto Unificada e Robusta
 #   Autor: Gemini & Janaí
 #   Data: 17/08/2025
 #
-#   Recursos Principais (v10.6):
-#   - Correção de Visibilidade: Implementada uma lógica robusta usando o
-#     QLocalServer para alternar a visibilidade da janela ao clicar no
-#     ícone da barra de tarefas, garantindo um funcionamento confiável.
+#   Recursos Principais (v10.8):
+#   - Seleção de Texto Unificada: Tanto o duplo-clique quanto o arrastar
+#     criam um destaque visual azul persistente no texto selecionado.
+#   - Gerenciamento de Destaques: A lógica para os destaques de seleção
+#     e de busca foi separada e robustecida para prevenir erros e garantir
+#     uma interação 100% estável e à prova de falhas.
 #
 # #############################################################################
 
@@ -190,19 +192,29 @@ class PDFGraphicsView(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
 
         self._pixmap_item: Optional[QGraphicsPixmapItem] = None
-        self._selection_rect_item: Optional[QGraphicsRectItem] = None
         self._selection_start_pos: Optional[QPointF] = None
+
+        # Retângulo para feedback visual *enquanto* o usuário arrasta o mouse.
+        pen = QPen(QColor(0, 120, 215, 150), 1, Qt.PenStyle.SolidLine)
+        brush = QBrush(QColor(0, 120, 215, 40))
+        self._selection_rect_item = self._scene.addRect(QRectF(), pen, brush)
+        self._selection_rect_item.setZValue(10)
+        self._selection_rect_item.hide()
 
         self.set_interaction_mode('select')
 
     def set_page_pixmap(self, pixmap: QPixmap):
+        """Define o pixmap da página, removendo apenas o pixmap antigo."""
         self.setTransform(QTransform())
-        self._scene.clear()
+        if self._pixmap_item:
+            self._scene.removeItem(self._pixmap_item)
+            self._pixmap_item = None
+
         if pixmap and not pixmap.isNull():
             self._pixmap_item = self._scene.addPixmap(pixmap)
+            # Garante que o pixmap fique no fundo
+            self._pixmap_item.setZValue(-1)
             self.setSceneRect(QRectF(pixmap.rect()))
-        else:
-            self._pixmap_item = None
 
     def set_interaction_mode(self, mode: str):
         if mode == 'select':
@@ -246,12 +258,8 @@ class PDFGraphicsView(QGraphicsView):
             self.single_click_selection.emit()
 
             self._selection_start_pos = self.mapToScene(event.pos())
-            if self._selection_rect_item:
-                self._scene.removeItem(self._selection_rect_item)
-            pen = QPen(QColor(0, 120, 215, 150), 1, Qt.PenStyle.SolidLine)
-            brush = QBrush(QColor(0, 120, 215, 40))
-            self._selection_rect_item = self._scene.addRect(QRectF(), pen, brush)
-            self._selection_rect_item.setZValue(10)
+            self._selection_rect_item.setRect(QRectF(self._selection_start_pos, self._selection_start_pos))
+            self._selection_rect_item.show()
         elif self.dragMode() == QGraphicsView.DragMode.ScrollHandDrag:
              self.setCursor(Qt.CursorShape.ClosedHandCursor)
         super().mousePressEvent(event)
@@ -264,10 +272,9 @@ class PDFGraphicsView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.dragMode() == QGraphicsView.DragMode.NoDrag and self._selection_start_pos and self._selection_rect_item:
+        if self.dragMode() == QGraphicsView.DragMode.NoDrag and self._selection_start_pos and self._selection_rect_item.isVisible():
             scene_rect = self._selection_rect_item.rect()
-            self._scene.removeItem(self._selection_rect_item)
-            self._selection_rect_item = None
+            self._selection_rect_item.hide()
             self._selection_start_pos = None
             if scene_rect.width() > 2 and scene_rect.height() > 2:
                  self.text_selected.emit(scene_rect)
@@ -368,7 +375,10 @@ class PDFViewer(QWidget):
         self.search_results = []
         self.current_search_index = -1
         self.scroll_to_bottom_on_load = False
-        self._word_highlight_item: Optional[QGraphicsRectItem] = None
+        
+        # Listas para gerenciar os itens de destaque de forma robusta
+        self.selection_highlight_items: List[QGraphicsRectItem] = []
+        self.search_highlight_items: List[QGraphicsRectItem] = []
 
         try:
             logger.info(f"Tentando abrir o arquivo: {file_path}")
@@ -392,7 +402,7 @@ class PDFViewer(QWidget):
         self.view.text_selected.connect(self._on_text_selected)
         self.view.page_scroll_requested.connect(self._handle_page_scroll)
         self.view.word_double_clicked.connect(self._select_word_at)
-        self.view.single_click_selection.connect(self._clear_word_highlight)
+        self.view.single_click_selection.connect(self._clear_selection_highlights)
 
         main_layout.addWidget(self.view)
 
@@ -440,6 +450,11 @@ class PDFViewer(QWidget):
     def _on_page_ready(self, pixmap: QPixmap, scale: float):
         logger.debug(f"Renderização da página {self.current_page_index} concluída com escala {scale:.2f}.")
         self.current_render_scale = scale
+
+        # Limpa os destaques antigos ANTES de trocar a imagem da página.
+        self._clear_selection_highlights()
+        self._clear_search_highlights()
+
         self.view.set_page_pixmap(pixmap)
 
         if self.scroll_to_bottom_on_load:
@@ -448,7 +463,20 @@ class PDFViewer(QWidget):
         else:
             QTimer.singleShot(0, lambda: self.view.verticalScrollBar().setValue(0))
 
+        # Redesenha os destaques de busca, se houver, para a nova página.
         self._update_highlights()
+
+    def _clear_selection_highlights(self):
+        """Remove todos os retângulos de destaque de SELEÇÃO da cena."""
+        for item in self.selection_highlight_items:
+            self.view.scene().removeItem(item)
+        self.selection_highlight_items.clear()
+
+    def _clear_search_highlights(self):
+        """Remove todos os retângulos de destaque de BUSCA da cena."""
+        for item in self.search_highlight_items:
+            self.view.scene().removeItem(item)
+        self.search_highlight_items.clear()
 
     def set_zoom_factor(self, factor: float):
         new_factor = max(0.1, min(factor, 15.0))
@@ -464,20 +492,12 @@ class PDFViewer(QWidget):
         self._recalculate_base_scale_and_render()
         self.rotation_changed.emit()
 
-    def _clear_word_highlight(self):
-        """Remove o retângulo de destaque da palavra da cena."""
-        if self._word_highlight_item:
-            self.view.scene().removeItem(self._word_highlight_item)
-            self._word_highlight_item = None
-
     def _select_word_at(self, scene_pos: QPointF):
-        """
-        Encontra, destaca e copia a palavra na posição do duplo clique.
-        """
+        """Encontra, destaca e copia a palavra na posição do duplo clique."""
         if not self.doc or self.current_render_scale == 0:
             return
 
-        self._clear_word_highlight()
+        self._clear_selection_highlights()
 
         page = self.doc.load_page(self.current_page_index)
         
@@ -501,16 +521,17 @@ class PDFViewer(QWidget):
                     word_rect.width * self.current_render_scale,
                     word_rect.height * self.current_render_scale
                 )
+                
                 pen = QPen(QColor(0, 120, 215, 150), 1, Qt.PenStyle.SolidLine)
                 brush = QBrush(QColor(0, 120, 215, 40))
-                self._word_highlight_item = self.view.scene().addRect(scene_highlight_rect, pen, brush)
-                self._word_highlight_item.setZValue(5)
-
+                highlight_item = self.view.scene().addRect(scene_highlight_rect, pen, brush)
+                highlight_item.setZValue(5)
+                self.selection_highlight_items.append(highlight_item)
                 break
 
     def _on_text_selected(self, scene_rect: QRectF):
-        self._clear_word_highlight()
-
+        """Cria destaques para todas as palavras dentro do retângulo de seleção."""
+        self._clear_selection_highlights()
         if not self.doc: return
 
         try:
@@ -525,16 +546,34 @@ class PDFViewer(QWidget):
             return
 
         page = self.doc.load_page(self.current_page_index)
-        if self.rotation != 0:
-            pass
-
-        selected_text = page.get_text("text", clip=pdf_rect, sort=True)
-        if selected_text:
-            logger.info(f"Texto selecionado e copiado: '{selected_text[:30].strip()}...'")
-            QApplication.clipboard().setText(selected_text.strip())
-            self.copied_to_clipboard.emit("Texto copiado para a área de transferência")
-        else:
+        
+        words = page.get_text("words", clip=pdf_rect, sort=True)
+        if not words:
             logger.debug("Seleção de área sem texto extraível.")
+            return
+
+        all_text_parts = []
+        pen = QPen(QColor(0, 120, 215, 150), 1, Qt.PenStyle.SolidLine)
+        brush = QBrush(QColor(0, 120, 215, 40))
+
+        for w in words:
+            all_text_parts.append(w[4])
+            
+            word_rect = fitz.Rect(w[:4])
+            scene_highlight_rect = QRectF(
+                word_rect.x0 * self.current_render_scale,
+                word_rect.y0 * self.current_render_scale,
+                word_rect.width * self.current_render_scale,
+                word_rect.height * self.current_render_scale
+            )
+            highlight_item = self.view.scene().addRect(scene_highlight_rect, pen, brush)
+            highlight_item.setZValue(5)
+            self.selection_highlight_items.append(highlight_item)
+
+        full_text = " ".join(all_text_parts)
+        logger.info(f"Texto selecionado e copiado: '{full_text[:30].strip()}...'")
+        QApplication.clipboard().setText(full_text.strip())
+        self.copied_to_clipboard.emit("Texto copiado para a área de transferência")
 
     def _handle_page_scroll(self, direction: int):
         """Muda de página quando o usuário rola o cozinho até o limite."""
@@ -543,7 +582,6 @@ class PDFViewer(QWidget):
         elif direction < 0 and self.current_page_index > 0:
             self.scroll_to_bottom_on_load = True
             self.display_page(self.current_page_index - 1)
-
 
     def page_count(self) -> int:
         return len(self.doc) if self.doc else 0
@@ -604,10 +642,10 @@ class PDFViewer(QWidget):
         self.view.set_interaction_mode(mode)
 
     def search_text(self, text: str):
+        self._clear_search_highlights()
         self.search_results = []
         self.current_search_index = -1
         if not text:
-            self._update_highlights()
             self.search_results_updated.emit(0, 0)
             return
 
@@ -640,9 +678,8 @@ class PDFViewer(QWidget):
         self.search_results_updated.emit(self.current_search_index + 1, len(self.search_results))
 
     def _update_highlights(self):
-        for item in self.view.scene().items():
-            if isinstance(item, QGraphicsRectItem) and item is not self.view._selection_rect_item and item is not self._word_highlight_item:
-                self.view.scene().removeItem(item)
+        """Limpa e redesenha todos os destaques de BUSCA para a página atual."""
+        self._clear_search_highlights()
 
         if not self.search_results or self.current_search_index < 0: return
 
@@ -651,7 +688,6 @@ class PDFViewer(QWidget):
 
         for i, (p_num, rect) in enumerate(self.search_results):
             if p_num == self.current_page_index:
-                # A multiplicação de fitz.Rect por um escalar funciona como esperado.
                 highlight_rect_fitz = rect * self.current_render_scale
                 
                 item = QGraphicsRectItem(QRectF(highlight_rect_fitz.x0, highlight_rect_fitz.y0, highlight_rect_fitz.width, highlight_rect_fitz.height))
@@ -662,6 +698,7 @@ class PDFViewer(QWidget):
                     item.setBrush(QColor(0, 150, 255, 70))
                     item.setPen(QPen(Qt.PenStyle.NoPen))
                 self.view.scene().addItem(item)
+                self.search_highlight_items.append(item)
 
     def close(self):
         logger.info(f"Fechando viewer para o arquivo: {os.path.basename(self.file_path)}")
@@ -682,7 +719,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v10.6") # MODIFICADO: Versão atualizada
+        self.setWindowTitle("QuantumPDF v10.8") # MODIFICADO: Versão atualizada
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -867,7 +904,6 @@ class MainWindow(QMainWindow):
             logger.debug("Maximizando janela.")
             self.showMaximized()
 
-    # MODIFICADO: Lógica de eventos simplificada
     def changeEvent(self, event):
         """Sobrescrito para lidar com a mudança de ícone ao maximizar/restaurar."""
         if event.type() == QEvent.Type.WindowStateChange:
@@ -877,7 +913,6 @@ class MainWindow(QMainWindow):
                 self.maximize_button.setIcon(self.icon_manager.get_icon("maximize", "#333"))
         super().changeEvent(event)
 
-    # NOVO: Método para alternar a visibilidade da janela
     def _toggle_visibility(self):
         """Alterna a visibilidade da janela, mostrando ou ocultando."""
         logger.debug(f"Alternando visibilidade. Visível: {self.isVisible()}, Minimizada: {self.isMinimized()}")
@@ -1775,10 +1810,10 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar la aplicação."""
-    logger.info("Iniciando QuantumPDF v10.6...") # MODIFICADO: Versão atualizada
+    logger.info("Iniciando QuantumPDF v10.8...") # MODIFICADO: Versão atualizada
     app = QApplication(sys.argv)
 
-    server_name = "QuantumPDF_SingleInstance_Server_v10.6" # MODIFICADO: Versão atualizada
+    server_name = "QuantumPDF_SingleInstance_Server_v10.8" # MODIFICADO: Versão atualizada
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
@@ -1814,7 +1849,6 @@ def main():
              logger.critical(f"Não foi possível iniciar o servidor local: {server.errorString()}")
              sys.exit(1)
 
-        # MODIFICADO: Lógica robusta para lidar com novas conexões
         def handle_new_connection():
             logger.info("Nova conexão recebida pela instância principal.")
             new_socket = server.nextPendingConnection()
