@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 # #############################################################################
 #
-#   QuantumPDF v10.0 - Melhorias na Impressão
+#   QuantumPDF v10.1 - Correção de Foco da Janela
 #   Autor: Gemini & Janaí
-#   Data: 15/08/2025
+#   Data: 17/08/2025
 #
-#   Recursos Principais (v10.0):
-#   - Qualidade da Pré-visualização: A miniatura na tela de impressão
-#     agora é renderizada com o dobro da resolução para maior nitidez.
-#   - Centralização da Miniatura: Corrigido o problema que fazia a
-#     miniatura sair do centro ao alternar a orientação (retrato/paisagem).
+#   Recursos Principais (v10.1):
+#   - Correção de Foco: O aplicativo agora respeita o estado da janela
+#     (minimizada ou maximizada) ao abrir um novo arquivo, evitando
+#     que a janela seja restaurada inesperadamente.
 #
 # #############################################################################
 
@@ -80,7 +79,7 @@ class IconManager:
     _instance = None
     _icon_cache: Dict[str, QIcon] = {}
     _svg_data = {
-        "open": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>""",
+        "open": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E73B58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>""",
         "print": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>""",
         "zoom-in": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>""",
         "zoom-out": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>""",
@@ -624,7 +623,7 @@ class PDFViewer(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QuantumPDF v9.9") # MODIFICADO: Versão atualizada
+        self.setWindowTitle("QuantumPDF v10.1") # MODIFICADO: Versão atualizada
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(1280, 800)
         self.normal_geometry = None
@@ -1451,30 +1450,15 @@ class MainWindow(QMainWindow):
             logger.info("Diálogo de impressão cancelado.")
 
     def _bring_to_front(self):
-        """Força a janela a vir para frente em qualquer SO"""
-        logger.info("Tentando trazer a janela para o primeiro plano.")
-        # Restaura se estiver minimizada e garante que está visível
-        self.setWindowState((self.windowState() & ~Qt.WindowState.WindowMinimized) | Qt.WindowState.WindowActive)
+        """Traz a janela para frente apenas se não estiver minimizada."""
+        if self.isMinimized():
+            # Não mexe, respeita o estado minimizado
+            return
         
-        # self.show() # REMOVIDO (v9.6): Esta linha causa a restauração da janela se ela já estiver maximizada.
-        
-        self.raise_()         
-        self.activateWindow() 
-
-        # Windows: força via Win32 API para maior confiabilidade
-        if sys.platform.startswith("win"):
-            try:
-                import ctypes
-                SW_RESTORE = 9
-                hwnd = int(self.winId())
-                ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
-                ctypes.windll.user32.SetForegroundWindow(hwnd)
-                logger.debug(f"Foco forçado via Win32 API para HWND: {hwnd}")
-            except Exception as e:
-                logger.debug(f"Win32 foco falhou: {e}")
-
-        # Fallback: piscar na barra se ainda assim não tiver foco
-        QApplication.alert(self, 3000)
+        # Se já estiver normal ou maximizada, só garante foco
+        self.setWindowState(self.windowState() | Qt.WindowState.WindowActive)
+        self.raise_()
+        self.activateWindow()
 
     def closeEvent(self, event):
         logger.info("Sinal de fechamento recebido. Encerrando a aplicação.")
@@ -1721,10 +1705,10 @@ class AdvancedPrintDialog(QDialog):
 
 def main():
     """Função principal para iniciar la aplicação."""
-    logger.info("Iniciando QuantumPDF v10.0...") # MODIFICADO: Versão atualizada
+    logger.info("Iniciando QuantumPDF v10.1...") # MODIFICADO: Versão atualizada
     app = QApplication(sys.argv)
 
-    server_name = "QuantumPDF_SingleInstance_Server_v10.0" # MODIFICADO: Versão atualizada
+    server_name = "QuantumPDF_SingleInstance_Server_v10.1" # MODIFICADO: Versão atualizada
     socket = QLocalSocket()
     socket.connectToServer(server_name)
 
